@@ -18,5 +18,5 @@ ARCHIVIRT — это фреймворк с открытым исходным к�
 
 1. **Клонируйте репозиторий**
    ```bash
-   git clone https://github.com/your-username/archivirt.git
+   git clone https://github.com/yasnemanegre/archivirt.git
    cd archivirt
