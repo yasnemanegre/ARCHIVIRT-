@@ -1,5 +1,3 @@
-# ARCHIVIRT-
-инновационный фреймворк для полной автоматизации жизненного цикла виртуальных лабораторий, предназначенных для оценки свойств систем обнаружения и предотвращения вторжений (IDS/IPS)
 # ARCHIVIRT Framework
 
 **A**utomated **R**eproducible **C**yber **H**yberd **I**nfrastructure for **VIRT**ual IDS/IPS Testing Labs
