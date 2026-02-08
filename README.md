@@ -1,6 +1,6 @@
 # ARCHIVIRT Framework
 
-**A**utomated **R**eproducible **C**yber **H**yberd **I**nfrastructure for **VIRT**ual IDS/IPS Testing Labs
+**A**utomated **R**eproducible **C**yber **H**ybrid **I**nfrastructure for **VIRT**ual IDS/IPS Testing Labs
 
 ## Описание
 
