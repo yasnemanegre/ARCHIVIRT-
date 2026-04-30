@@ -1,0 +1,171 @@
+---
+# ─────────────────────────────────────────────────────────────
+# ARCHIVIRT — Target Role
+# Deploys vulnerable services based on target_role variable:
+#   web     → Apache2 + DVWA (PHP/MySQL) + vsftpd
+#   ssh_ftp → OpenSSH with weak config + vsftpd
+#   smb_db  → Samba + MariaDB
+# ─────────────────────────────────────────────────────────────
+
+# ── Shared: OpenSSH with intentionally weak configuration ─────
+- name: Install OpenSSH server
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+
+- name: Configure SSH with weak settings (intentional for lab)
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    block: |
+      PermitRootLogin yes
+      PasswordAuthentication yes
+      MaxAuthTries 100
+      LoginGraceTime 120
+    marker: "# {mark} ARCHIVIRT lab SSH config"
+
+- name: Create weak SSH test accounts
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+    state: present
+    shell: /bin/bash
+  loop:
+    - { name: "testuser", password: "password123" }
+    - { name: "admin",    password: "admin" }
+    - { name: "ubuntu",   password: "ubuntu" }
+
+- name: Restart SSH service
+  ansible.builtin.systemd:
+    name: ssh
+    state: restarted
+    enabled: true
+
+# ── Web Target (DVWA + Apache + PHP) ─────────────────────────
+- name: "[web] Install LAMP stack"
+  ansible.builtin.apt:
+    name:
+      - apache2
+      - php
+      - php-mysql
+      - php-gd
+      - php-xml
+      - mariadb-server
+      - libapache2-mod-php
+      - git
+    state: present
+  when: target_role == "web"
+
+- name: "[web] Clone DVWA (Damn Vulnerable Web Application)"
+  ansible.builtin.git:
+    repo: https://github.com/digininja/DVWA.git
+    dest: /var/www/html/dvwa
+    version: master
+    force: true
+  when: target_role == "web"
+
+- name: "[web] Copy DVWA config"
+  ansible.builtin.copy:
+    src: /var/www/html/dvwa/config/config.inc.php.dist
+    dest: /var/www/html/dvwa/config/config.inc.php
+    remote_src: true
+  when: target_role == "web"
+
+- name: "[web] Configure DVWA database settings"
+  ansible.builtin.replace:
+    path: /var/www/html/dvwa/config/config.inc.php
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  loop:
+    - { regexp: "'db_password'\\s*=>\\s*'p@ssw0rd'", replace: "'db_password' => 'dvwa_password'" }
+    - { regexp: "'db_database'\\s*=>\\s*'dvwa'", replace: "'db_database' => 'dvwa'" }
+  when: target_role == "web"
+
+- name: "[web] Set DVWA directory permissions"
+  ansible.builtin.file:
+    path: /var/www/html/dvwa
+    owner: www-data
+    group: www-data
+    recurse: true
+  when: target_role == "web"
+
+- name: "[web] Start and enable Apache2"
+  ansible.builtin.systemd:
+    name: apache2
+    state: started
+    enabled: true
+  when: target_role == "web"
+
+- name: "[web] Start and enable MariaDB"
+  ansible.builtin.systemd:
+    name: mariadb
+    state: started
+    enabled: true
+  when: target_role == "web"
+
+# ── SSH/FTP Target ────────────────────────────────────────────
+- name: "[ssh_ftp] Install vsftpd"
+  ansible.builtin.apt:
+    name: vsftpd
+    state: present
+  when: target_role == "ssh_ftp"
+
+- name: "[ssh_ftp] Configure vsftpd (anonymous enabled for lab)"
+  ansible.builtin.copy:
+    dest: /etc/vsftpd.conf
+    content: |
+      listen=YES
+      anonymous_enable=YES
+      local_enable=YES
+      write_enable=YES
+      anon_upload_enable=YES
+      anon_mkdir_write_enable=YES
+      dirmessage_enable=YES
+      use_localtime=YES
+      xferlog_enable=YES
+      connect_from_port_20=YES
+      ftpd_banner=Welcome to ARCHIVIRT Lab FTP Server
+  when: target_role == "ssh_ftp"
+
+- name: "[ssh_ftp] Start vsftpd"
+  ansible.builtin.systemd:
+    name: vsftpd
+    state: started
+    enabled: true
+  when: target_role == "ssh_ftp"
+
+# ── SMB/DB Target ─────────────────────────────────────────────
+- name: "[smb_db] Install Samba and MariaDB"
+  ansible.builtin.apt:
+    name:
+      - samba
+      - mariadb-server
+    state: present
+  when: target_role == "smb_db"
+
+- name: "[smb_db] Configure Samba with open share"
+  ansible.builtin.blockinfile:
+    path: /etc/samba/smb.conf
+    block: |
+      [archivirt_share]
+        path = /srv/samba/share
+        browseable = yes
+        read only = no
+        guest ok = yes
+        create mask = 0777
+        directory mask = 0777
+    marker: "# {mark} ARCHIVIRT Samba config"
+  when: target_role == "smb_db"
+
+- name: "[smb_db] Create Samba share directory"
+  ansible.builtin.file:
+    path: /srv/samba/share
+    state: directory
+    mode: "0777"
+  when: target_role == "smb_db"
+
+- name: "[smb_db] Start Samba"
+  ansible.builtin.systemd:
+    name: smbd
+    state: started
+    enabled: true
+  when: target_role == "smb_db"

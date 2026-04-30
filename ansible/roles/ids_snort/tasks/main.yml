@@ -1,0 +1,199 @@
+---
+# ─────────────────────────────────────────────────────────────
+# ARCHIVIRT — IDS Snort 3 Role
+# Deploys Snort 3 in passive IDS mode on the monitor VM
+# Monitoring interface: eth1 (tap on target subnet 10.0.2.0/24)
+# ─────────────────────────────────────────────────────────────
+
+- name: Install Snort 3 build dependencies
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - libpcap-dev
+      - libpcre3-dev
+      - libdumbnet-dev
+      - bison
+      - flex
+      - zlib1g-dev
+      - liblzma-dev
+      - openssl
+      - libssl-dev
+      - libnghttp2-dev
+      - libluajit-5.1-dev
+      - pkg-config
+      - cmake
+      - libhwloc-dev
+      - libnuma-dev
+    state: present
+
+- name: Install Snort 3 via apt (Ubuntu 22.04 package)
+  ansible.builtin.apt:
+    name: snort
+    state: present
+  ignore_errors: true
+
+- name: Create Snort directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/snort
+    - /etc/snort/rules
+    - /var/log/snort
+    - /tmp/snort_dynamicpreprocessor
+
+- name: Deploy Snort 3 main configuration
+  ansible.builtin.copy:
+    dest: /etc/snort/snort.lua
+    content: |
+      ---------------------------------------------------------------------------
+      -- ARCHIVIRT Snort 3 Configuration
+      -- Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+      ---------------------------------------------------------------------------
+
+      -- Network variables
+      HOME_NET = '10.0.2.0/24'
+      EXTERNAL_NET = '10.0.4.0/24'
+      DNS_SERVERS = HOME_NET
+      HTTP_SERVERS = HOME_NET
+
+      -- Include paths
+      RULE_PATH = '/etc/snort/rules'
+      LOG_DIR = '/var/log/snort'
+
+      -- Detection engine
+      detect =
+      {
+        pkts_per_batch = 64,
+        max_pdu_size = 65535,
+        offload_threads = 1,
+      }
+
+      -- Output: fast alert file
+      alert_fast =
+      {
+        file = true,
+        packet = false,
+        limit = 10,
+      }
+
+      -- Output: unified2 for log parsing
+      alert_csv =
+      {
+        file = '/var/log/snort/alert.csv',
+        fields = 'timestamp,msg,src,srcport,dst,dstport,proto',
+      }
+
+      -- PCAP capture
+      pcap_log =
+      {
+        limit_pcaps = 10,
+        pcap_dir = '/var/log/snort/pcaps',
+      }
+
+      -- Daq configuration (passive mode)
+      daq =
+      {
+        module = 'pcap',
+        snaplen = 65535,
+        variables = { 'buffer_size=256', 'no_promiscuous=false' },
+      }
+
+      -- Include local rules
+      ips =
+      {
+        enable_builtin_rules = true,
+        rules = [[
+          include $RULE_PATH/archivirt-local.rules
+          include $RULE_PATH/emerging-threats.rules
+        ]],
+      }
+
+      -- Logging
+      appid = { app_detector_dir = '/usr/share/snort3' }
+
+- name: Deploy ARCHIVIRT local Snort rules
+  ansible.builtin.copy:
+    dest: /etc/snort/rules/archivirt-local.rules
+    content: |
+      # ─────────────────────────────────────────────────────────
+      # ARCHIVIRT Local Snort 3 Rules
+      # ─────────────────────────────────────────────────────────
+
+      # Port Scan Detection (Nmap)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap SYN Scan"; flags:S; threshold:type threshold, track by_src, count 20, seconds 2; sid:1000001; rev:1;)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap NULL Scan"; flags:0; sid:1000002; rev:1;)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap XMAS Scan"; flags:FPU; sid:1000003; rev:1;)
+
+      # SSH Brute-force Detection (Hydra)
+      alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Brute-force Attempt"; flow:to_server,established; content:"SSH"; threshold:type threshold, track by_src, count 5, seconds 30; sid:1000010; rev:1;)
+      alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Multiple Failed Auth"; threshold:type both, track by_src, count 10, seconds 60; sid:1000011; rev:1;)
+
+      # SQL Injection Detection (sqlmap)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT HTTP SQLi UNION SELECT"; flow:to_server,established; content:"UNION"; nocase; content:"SELECT"; nocase; distance:0; within:20; sid:1000020; rev:1;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT HTTP SQLi OR 1=1"; flow:to_server,established; content:"OR 1=1"; nocase; sid:1000021; rev:1;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT HTTP sqlmap User-Agent"; flow:to_server,established; content:"sqlmap"; nocase; http_header; sid:1000022; rev:1;)
+
+      # DDoS Slowloris Detection
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT Slowloris DDoS Partial HTTP"; flow:to_server,established; content:"GET"; depth:3; content:!|0d 0a 0d 0a|; within:500; threshold:type both, track by_dst, count 100, seconds 30; sid:1000030; rev:1;)
+
+      # FTP Brute-force
+      alert tcp any any -> $HOME_NET 21 (msg:"ARCHIVIRT FTP Brute-force"; flow:to_server,established; content:"PASS"; threshold:type threshold, track by_src, count 5, seconds 30; sid:1000040; rev:1;)
+
+      # SMB Enumeration
+      alert tcp any any -> $HOME_NET 445 (msg:"ARCHIVIRT SMB Scan Detected"; flow:to_server,established; threshold:type threshold, track by_src, count 5, seconds 10; sid:1000050; rev:1;)
+
+- name: Create Snort pcap directory
+  ansible.builtin.file:
+    path: /var/log/snort/pcaps
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Set monitoring interface to promiscuous mode
+  ansible.builtin.shell: |
+    ip link set {{ monitor_interface | default('eth1') }} promisc on
+  changed_when: true
+
+- name: Create Snort systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/snort3.service
+    content: |
+      [Unit]
+      Description=Snort 3 NIDS - ARCHIVIRT Lab
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/bin/snort \
+        -c /etc/snort/snort.lua \
+        -i {{ monitor_interface | default('eth1') }} \
+        -l /var/log/snort \
+        -D \
+        --daq pcap \
+        --daq-mode passive
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Reload systemd and enable Snort 3
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: snort3
+    enabled: true
+    state: started
+
+- name: Verify Snort 3 is running
+  ansible.builtin.command: systemctl is-active snort3
+  register: snort_status
+  changed_when: false
+
+- name: Print Snort status
+  ansible.builtin.debug:
+    msg: "Snort 3 status: {{ snort_status.stdout }}"

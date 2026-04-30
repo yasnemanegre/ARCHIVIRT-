@@ -1,0 +1,67 @@
+---------------------------------------------------------------------------
+-- ARCHIVIRT Snort 3 Main Configuration
+-- Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+-- Reference: /etc/snort/snort.lua (deployed by Ansible role ids_snort)
+--
+-- This file is a human-readable reference.
+-- The Ansible role deploys the actual config automatically.
+---------------------------------------------------------------------------
+
+-- Network Variables
+HOME_NET = '10.0.2.0/24'        -- Target VMs subnet
+EXTERNAL_NET = '10.0.4.0/24'   -- Attacker subnet
+DNS_SERVERS = HOME_NET
+HTTP_SERVERS = HOME_NET
+SSH_SERVERS = HOME_NET
+FTP_SERVERS = HOME_NET
+
+-- Paths
+RULE_PATH = '/etc/snort/rules'
+LOG_DIR   = '/var/log/snort'
+
+-- Detection: fast-path batch processing
+detect =
+{
+    pkts_per_batch = 64,
+    max_pdu_size = 65535,
+    offload_threads = 1,
+}
+
+-- Outputs
+alert_fast =
+{
+    file = true,
+    packet = false,
+    limit = 10,
+}
+
+alert_csv =
+{
+    file = LOG_DIR .. '/alert.csv',
+    fields = 'timestamp,msg,src,srcport,dst,dstport,proto,action',
+}
+
+-- PCAP capture of attack traffic
+pcap_log =
+{
+    limit_pcaps = 10,
+    pcap_dir = LOG_DIR .. '/pcaps',
+}
+
+-- DAQ: passive capture mode (IDS — no inline blocking)
+daq =
+{
+    module = 'pcap',
+    snaplen = 65535,
+    variables = { 'buffer_size=256', 'no_promiscuous=false' },
+}
+
+-- IPS engine with rules
+ips =
+{
+    enable_builtin_rules = true,
+    rules = [[
+        include $RULE_PATH/archivirt-local.rules
+        include $RULE_PATH/emerging-threats.rules
+    ]],
+}

@@ -1,0 +1,59 @@
+---
+# ─────────────────────────────────────────────────────────────
+# ARCHIVIRT — Master Ansible Playbook
+# Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.ini site.yml
+#   ansible-playbook -i inventory/hosts.ini site.yml --tags ids_snort
+#   ansible-playbook -i inventory/hosts.ini site.yml --tags ids_suricata
+# ─────────────────────────────────────────────────────────────
+
+# ── Phase 1: Common base configuration on all VMs ────────────
+- name: "ARCHIVIRT | Phase 1 — Common Base Setup"
+  hosts: all
+  become: true
+  gather_facts: true
+  tags: [common, always]
+  roles:
+    - role: common
+
+# ── Phase 2: Target VMs — deploy vulnerable services ─────────
+- name: "ARCHIVIRT | Phase 2 — Configure Target VMs"
+  hosts: targets
+  become: true
+  tags: [targets]
+  roles:
+    - role: target
+
+# ── Phase 3a: Monitor VM — deploy Snort 3 IDS ────────────────
+- name: "ARCHIVIRT | Phase 3a — Deploy Snort 3 IDS"
+  hosts: monitor
+  become: true
+  tags: [ids_snort]
+  roles:
+    - role: ids_snort
+
+# ── Phase 3b: Monitor VM — deploy Suricata 6 IDS ─────────────
+- name: "ARCHIVIRT | Phase 3b — Deploy Suricata 6 IDS"
+  hosts: monitor
+  become: true
+  tags: [ids_suricata]
+  roles:
+    - role: ids_suricata
+
+# ── Phase 4: Attacker VM — install penetration tools ─────────
+- name: "ARCHIVIRT | Phase 4 — Configure Attacker VM"
+  hosts: attacker
+  become: true
+  tags: [attacker]
+  roles:
+    - role: attacker
+
+# ── Phase 5: Manager VM — orchestration & monitoring stack ───
+- name: "ARCHIVIRT | Phase 5 — Configure Manager VM"
+  hosts: manager
+  become: true
+  tags: [manager]
+  roles:
+    - role: manager

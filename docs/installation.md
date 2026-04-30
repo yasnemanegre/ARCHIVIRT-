@@ -1,0 +1,370 @@
+# ARCHIVIRT — Complete Installation Guide
+
+> Server: `archivirt@archivirt-lab` | IP: `192.168.4.11`  
+> Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+
+---
+
+## Table of Contents
+
+1. [Host Prerequisites](#1-host-prerequisites)
+2. [KVM/Libvirt Setup](#2-kvmlibvirt-setup)
+3. [Terraform Installation](#3-terraform-installation)
+4. [Ansible Installation](#4-ansible-installation)
+5. [Python Dependencies](#5-python-dependencies)
+6. [Clone Repository](#6-clone-repository)
+7. [Network Configuration](#7-network-configuration)
+8. [Deploy Infrastructure](#8-deploy-infrastructure)
+9. [Configure IDS/IPS](#9-configure-idsips)
+10. [Run Tests](#10-run-tests)
+11. [View Reports & Grafana](#11-view-reports--grafana)
+12. [Troubleshooting](#12-troubleshooting)
+
+---
+
+## 1. Host Prerequisites
+
+The ARCHIVIRT framework runs on an Ubuntu Server 22.04 LTS host.
+
+```bash
+# Connect to host server
+ssh archivirt@192.168.4.11
+
+# Verify Ubuntu version
+lsb_release -a
+# Expected: Ubuntu 22.04.x LTS
+
+# Check hardware virtualization support
+egrep -c '(vmx|svm)' /proc/cpuinfo
+# Must be > 0
+
+# Check CPU cores and RAM
+nproc
+free -h
+# Recommended: 16+ cores, 64 GB RAM (article reference: Dell Xeon 16c, 64GB NVMe)
+```
+
+---
+
+## 2. KVM/Libvirt Setup
+
+```bash
+# Install KVM and Libvirt
+sudo apt update && sudo apt install -y \
+    qemu-kvm \
+    libvirt-daemon-system \
+    libvirt-clients \
+    bridge-utils \
+    virt-manager \
+    virtinst \
+    cpu-checker \
+    genisoimage \
+    cloud-image-utils
+
+# Verify KVM installation
+sudo kvm-ok
+# Expected: INFO: /dev/kvm exists — KVM acceleration can be used
+
+# Add user to libvirt and kvm groups
+sudo usermod -aG libvirt archivirt
+sudo usermod -aG kvm archivirt
+
+# Restart libvirt
+sudo systemctl enable --now libvirtd
+sudo systemctl status libvirtd
+
+# Verify libvirt is running
+virsh list --all
+```
+
+---
+
+## 3. Terraform Installation
+
+```bash
+# Install Terraform v1.5+
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+  https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+  sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+sudo apt update && sudo apt install -y terraform
+
+# Verify
+terraform --version
+# Expected: Terraform v1.5.x or higher
+
+# Install terraform-provider-libvirt dependencies
+sudo apt install -y libvirt-dev
+```
+
+---
+
+## 4. Ansible Installation
+
+```bash
+# Install Ansible
+sudo apt install -y software-properties-common
+sudo add-apt-repository --yes --update ppa:ansible/ansible
+sudo apt install -y ansible
+
+# Verify
+ansible --version
+# Expected: ansible [core 2.14+]
+
+# Install required Ansible collections
+ansible-galaxy collection install community.general
+ansible-galaxy collection install ansible.posix
+```
+
+---
+
+## 5. Python Dependencies
+
+```bash
+# Install Python 3 and pip
+sudo apt install -y python3 python3-pip python3-venv
+
+# Create virtual environment for ARCHIVIRT
+python3 -m venv /home/archivirt/archivirt-env
+source /home/archivirt/archivirt-env/bin/activate
+
+# Install Python libraries
+pip install \
+    pandas \
+    matplotlib \
+    seaborn \
+    jinja2 \
+    paramiko \
+    pytest \
+    requests \
+    PyYAML \
+    rich \
+    tabulate \
+    numpy
+
+# Verify installation
+python3 -c "import pandas, matplotlib, jinja2, paramiko; print('All OK')"
+```
+
+---
+
+## 6. Clone Repository
+
+```bash
+# Install git
+sudo apt install -y git
+
+# Clone ARCHIVIRT
+cd /home/archivirt
+git clone https://github.com/yasnemanegre/ARCHIVIRT.git
+cd ARCHIVIRT
+
+# Set execute permissions
+chmod +x scripts/*.sh
+chmod +x scripts/*.py
+```
+
+---
+
+## 7. Network Configuration
+
+ARCHIVIRT uses four isolated virtual networks on the KVM host.
+
+```bash
+# Verify host interface
+ip addr show enp0s3
+# Expected: inet 192.168.4.11/...
+
+# Networks will be created by Terraform:
+#   archivirt-targets   → 10.0.2.0/24  (Target VMs)
+#   archivirt-monitor   → 10.0.3.0/24  (IDS/IPS Monitoring)
+#   archivirt-attack    → 10.0.4.0/24  (Attacker + Manager)
+
+# Verify no conflicts with existing networks
+ip route show
+virsh net-list --all
+```
+
+---
+
+## 8. Deploy Infrastructure
+
+```bash
+cd /home/archivirt/ARCHIVIRT
+
+# Initialize Terraform
+cd terraform/
+terraform init
+
+# Plan deployment (review what will be created)
+terraform plan -var-file=../configs/lab.tfvars
+
+# Apply — creates all VMs and networks (~10 min)
+terraform apply -var-file=../configs/lab.tfvars -auto-approve
+
+# Verify VMs are running
+virsh list --all
+# Expected:
+#  Id  Name                    State
+#  1   archivirt-manager       running
+#  2   archivirt-attacker      running
+#  3   archivirt-monitor-ids   running
+#  4   archivirt-target-01     running
+#  5   archivirt-target-02     running
+#  6   archivirt-target-03     running
+
+cd ..
+```
+
+---
+
+## 9. Configure IDS/IPS
+
+After Terraform creates the VMs, Ansible configures all roles.
+
+```bash
+# Update inventory with actual IPs (auto-generated by Terraform)
+terraform -chdir=terraform output -json > /tmp/tf_outputs.json
+python3 scripts/generate_inventory.py
+
+# Run full Ansible configuration
+cd ansible/
+
+# Configure all VMs (common base)
+ansible-playbook -i inventory/hosts.ini site.yml --tags common
+
+# Configure target VMs with vulnerable services
+ansible-playbook -i inventory/hosts.ini site.yml --tags targets
+
+# Deploy Snort 3 IDS on monitor VM
+ansible-playbook -i inventory/hosts.ini site.yml --tags ids_snort
+
+# OR deploy Suricata 6 (mutually exclusive with Snort)
+# ansible-playbook -i inventory/hosts.ini site.yml --tags ids_suricata
+
+# Configure attacker VM
+ansible-playbook -i inventory/hosts.ini site.yml --tags attacker
+
+# Configure manager VM
+ansible-playbook -i inventory/hosts.ini site.yml --tags manager
+
+cd ..
+```
+
+---
+
+## 10. Run Tests
+
+```bash
+# Activate Python virtual environment
+source /home/archivirt/archivirt-env/bin/activate
+
+# Run deployment validation tests first
+pytest tests/test_deployment.py -v
+pytest tests/test_connectivity.py -v
+
+# Execute all 5 security test scenarios
+./scripts/run_tests.sh
+
+# Expected output:
+# [1/5] Port Scan (Nmap)         ... DONE (12 sec)
+# [2/5] SSH Brute-force (Hydra)  ... DONE (45 sec)
+# [3/5] SQLi Exploit (sqlmap)    ... DONE (102 sec)
+# [4/5] Slowloris DDoS           ... DONE (210 sec)
+# [5/5] Normal Traffic Baseline  ... DONE (30 sec)
+# All scenarios completed. Logs saved to: logs/run_YYYYMMDD_HHMMSS/
+
+# Collect and aggregate metrics
+python3 scripts/collect_metrics.py --run-dir logs/latest/
+
+# Generate final HTML report
+python3 scripts/generate_report.py --output reports/report.html
+```
+
+---
+
+## 11. View Reports & Grafana
+
+```bash
+# Open the generated HTML report
+python3 -m http.server 8080 --directory reports/
+# Access: http://192.168.4.11:8080/report.html
+
+# Start Grafana dashboard (if monitoring stack installed)
+sudo systemctl start telegraf influxdb grafana-server
+
+# Access Grafana: http://192.168.4.11:3000
+# Default credentials: admin / archivirt
+
+# Import dashboard:
+# Settings → Dashboards → Import → Upload monitoring/grafana/dashboard.json
+```
+
+---
+
+## 12. Troubleshooting
+
+### VM won't start
+```bash
+sudo journalctl -u libvirtd -f
+virsh dominfo archivirt-target-01
+virsh start archivirt-target-01 --console
+```
+
+### Terraform provider error
+```bash
+# Re-initialize with upgrade
+terraform init -upgrade
+```
+
+### SSH connection refused from Ansible
+```bash
+# Verify VM is running and get IP
+virsh domifaddr archivirt-target-01
+
+# Test SSH manually
+ssh ubuntu@10.0.2.10 -i ~/.ssh/archivirt_key
+
+# Regenerate SSH key pair if needed
+ssh-keygen -t ed25519 -f ~/.ssh/archivirt_key -N ""
+```
+
+### Snort/Suricata not detecting attacks
+```bash
+# Verify interface is in promiscuous mode on monitor VM
+ssh ubuntu@10.0.3.10
+sudo ip link set eth0 promisc on
+sudo ip link show eth0 | grep promisc
+
+# Restart IDS
+sudo systemctl restart snort3
+# OR
+sudo systemctl restart suricata
+```
+
+### View IDS alerts in real-time
+```bash
+# Snort 3 alerts
+ssh ubuntu@10.0.3.10
+sudo tail -f /var/log/snort/alert_fast.txt
+
+# Suricata alerts
+ssh ubuntu@10.0.3.10
+sudo tail -f /var/log/suricata/fast.log
+```
+
+---
+
+## Full Teardown
+
+```bash
+# Destroy all VMs and networks (WARNING: destructive)
+cd terraform/
+terraform destroy -var-file=../configs/lab.tfvars -auto-approve
+
+# Verify cleanup
+virsh list --all
+virsh net-list --all
+```

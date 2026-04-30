@@ -1,0 +1,49 @@
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfplan
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Results & outputs (generated data)
+results/
+*.json
+!monitoring/grafana/dashboard.json
+reports/
+*.html
+*.pcap
+*.csv
+
+# SSH Keys
+*.pem
+*.key
+*_key
+*_key.pub
+!configs/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ansible retry files
+ansible/*.retry

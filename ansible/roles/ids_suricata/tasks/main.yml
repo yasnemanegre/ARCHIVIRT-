@@ -1,0 +1,259 @@
+---
+# ─────────────────────────────────────────────────────────────
+# ARCHIVIRT — IDS Suricata 6 Role
+# Deploys Suricata 6 in passive IDS mode on the monitor VM
+# Monitoring interface: eth1 (tap on target subnet 10.0.2.0/24)
+# ─────────────────────────────────────────────────────────────
+
+- name: Add Suricata PPA repository
+  ansible.builtin.apt_repository:
+    repo: ppa:oisf/suricata-stable
+    state: present
+    update_cache: true
+
+- name: Install Suricata 6
+  ansible.builtin.apt:
+    name:
+      - suricata
+      - suricata-update
+    state: present
+
+- name: Create Suricata log directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: suricata
+    group: suricata
+    mode: "0755"
+  loop:
+    - /var/log/suricata
+    - /var/log/suricata/pcap
+    - /etc/suricata/rules
+
+- name: Deploy Suricata main configuration
+  ansible.builtin.copy:
+    dest: /etc/suricata/suricata.yaml
+    content: |
+      %YAML 1.1
+      ---
+      # ─────────────────────────────────────────────────────────
+      # ARCHIVIRT Suricata 6 Configuration
+      # Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+      # ─────────────────────────────────────────────────────────
+
+      vars:
+        address-groups:
+          HOME_NET: "[10.0.2.0/24]"
+          EXTERNAL_NET: "[10.0.4.0/24]"
+          HTTP_SERVERS: "$HOME_NET"
+          SQL_SERVERS: "$HOME_NET"
+          DNS_SERVERS: "$HOME_NET"
+          FTP_SERVERS: "$HOME_NET"
+          SSH_SERVERS: "$HOME_NET"
+          SMTP_SERVERS: "$HOME_NET"
+          SIP_SERVERS: "$HOME_NET"
+
+        port-groups:
+          HTTP_PORTS: "80"
+          SHELLCODE_PORTS: "!80"
+          ORACLE_PORTS: 1521
+          SSH_PORTS: 22
+          FTP_PORTS: 21
+          SMB_PORTS: "[139, 445]"
+
+      default-log-dir: /var/log/suricata
+
+      # Outputs
+      outputs:
+        - fast:
+            enabled: yes
+            filename: fast.log
+            append: yes
+
+        - eve-log:
+            enabled: yes
+            filetype: regular
+            filename: eve.json
+            types:
+              - alert:
+                  payload: yes
+                  payload-buffer-size: 4kb
+                  http: yes
+                  tls: yes
+                  ssh: yes
+                  smtp: yes
+                  dnp3: yes
+                  metadata: yes
+                  tagged-packets: yes
+              - http:
+                  extended: yes
+              - dns:
+                  version: 2
+              - tls:
+                  extended: yes
+              - ssh
+              - stats:
+                  totals: yes
+                  threads: no
+                  deltas: no
+
+        - pcap-log:
+            enabled: yes
+            filename: archivirt-capture-%n.pcap
+            limit: 100mb
+            max-files: 10
+            mode: normal
+            dir: /var/log/suricata/pcap
+
+        - stats:
+            enabled: yes
+            filename: stats.log
+            totals: yes
+            threads: no
+
+      # Application layer parsers
+      app-layer:
+        protocols:
+          http:
+            enabled: yes
+            libhtp:
+              default-config:
+                personality: IDS
+                request-body-limit: 100kb
+          ftp:
+            enabled: yes
+          ssh:
+            enabled: yes
+          smtp:
+            enabled: yes
+          tls:
+            enabled: yes
+          dns:
+            enabled: yes
+          http2:
+            enabled: yes
+
+      # Multithreading (Suricata 6 advantage over Snort)
+      threading:
+        set-cpu-affinity: no
+        cpu-affinity:
+          - management-cpu-set:
+              cpu: [ 0 ]
+          - receive-cpu-set:
+              cpu: [ 0 ]
+          - worker-cpu-set:
+              cpu: [ "all" ]
+              mode: "balanced"
+        detect-thread-ratio: 1.5
+
+      # Detection engine
+      detect:
+        profile: medium
+        custom-values:
+          toclient-groups: 3
+          toserver-groups: 25
+        sgh-mpm-context: auto
+        inspection-recursion-limit: 3000
+        prefilter:
+          default: mpm
+
+      # Rules
+      default-rule-path: /etc/suricata/rules
+      rule-files:
+        - archivirt-local.rules
+        - suricata.rules
+
+      # Host table
+      host-mode: auto
+      max-pending-packets: 1024
+      runmode: autofp
+
+      # Capture
+      af-packet:
+        - interface: default
+          threads: auto
+          cluster-id: 99
+          cluster-type: cluster_flow
+          defrag: yes
+          use-mmap: yes
+          tpacket-v3: yes
+          ring-size: 2048
+          block-size: 32768
+          block-timeout: 10
+          use-emergency-flush: yes
+
+      pcap:
+        - interface: default
+          buffer-size: 16mb
+          bpf-filter: "not host 192.168.4.11"
+          checksum-checks: auto
+
+      legacy:
+        uricontent: enabled
+
+- name: Deploy ARCHIVIRT local Suricata rules
+  ansible.builtin.copy:
+    dest: /etc/suricata/rules/archivirt-local.rules
+    content: |
+      # ─────────────────────────────────────────────────────────
+      # ARCHIVIRT Local Suricata 6 Rules
+      # ─────────────────────────────────────────────────────────
+
+      # Port Scan Detection (Nmap)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap SYN Scan"; flags:S,12; threshold:type threshold, track by_src, count 20, seconds 2; classtype:network-scan; sid:2000001; rev:2;)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap NULL Scan"; flags:0; sid:2000002; rev:2;)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap FIN Scan"; flags:F; sid:2000003; rev:2;)
+      alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap XMAS Scan"; flags:FPU; sid:2000004; rev:2;)
+      alert udp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap UDP Scan"; threshold:type threshold, track by_src, count 50, seconds 5; sid:2000005; rev:2;)
+
+      # SSH Brute-force Detection (Hydra)
+      alert tcp any any -> $SSH_SERVERS $SSH_PORTS (msg:"ARCHIVIRT SSH Brute-force"; flow:to_server,established; content:"SSH"; threshold:type both, track by_src, count 5, seconds 30; classtype:attempted-user; sid:2000010; rev:2;)
+      alert tcp any any -> $SSH_SERVERS $SSH_PORTS (msg:"ARCHIVIRT SSH Multiple Auth Failures"; threshold:type both, track by_src, count 10, seconds 60; classtype:attempted-user; sid:2000011; rev:2;)
+
+      # SQL Injection Detection (sqlmap)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQL Injection UNION"; flow:to_server,established; http.method; content:"GET"; http.uri; content:"UNION"; nocase; content:"SELECT"; nocase; distance:0; within:20; classtype:web-application-attack; sid:2000020; rev:2;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Boolean Based"; flow:to_server,established; http.uri; content:"OR 1=1"; nocase; classtype:web-application-attack; sid:2000021; rev:2;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Time Based SLEEP"; flow:to_server,established; http.uri; content:"SLEEP("; nocase; classtype:web-application-attack; sid:2000022; rev:2;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP sqlmap User-Agent"; flow:to_server,established; http.user_agent; content:"sqlmap"; classtype:web-application-attack; sid:2000023; rev:2;)
+
+      # Slowloris DDoS Detection
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT Slowloris DDoS Connection"; flow:to_server,established; threshold:type both, track by_dst, count 200, seconds 30; classtype:denial-of-service; sid:2000030; rev:2;)
+
+      # FTP Brute-force
+      alert tcp any any -> $FTP_SERVERS $FTP_PORTS (msg:"ARCHIVIRT FTP Auth Brute-force"; flow:to_server,established; content:"PASS"; threshold:type threshold, track by_src, count 5, seconds 30; classtype:attempted-user; sid:2000040; rev:2;)
+
+      # SMB Scan/Exploitation
+      alert smb any any -> $HOME_NET $SMB_PORTS (msg:"ARCHIVIRT SMB Scan Detected"; threshold:type threshold, track by_src, count 5, seconds 10; classtype:network-scan; sid:2000050; rev:2;)
+
+- name: Update Suricata rules with suricata-update
+  ansible.builtin.command:
+    cmd: suricata-update
+  changed_when: true
+  ignore_errors: true
+
+- name: Set monitoring interface to promiscuous mode
+  ansible.builtin.shell: |
+    ip link set {{ monitor_interface | default('eth1') }} promisc on
+  changed_when: true
+
+- name: Configure Suricata to use correct interface
+  ansible.builtin.replace:
+    path: /etc/suricata/suricata.yaml
+    regexp: "interface: default"
+    replace: "interface: {{ monitor_interface | default('eth1') }}"
+
+- name: Enable Suricata service
+  ansible.builtin.systemd:
+    name: suricata
+    daemon_reload: true
+    enabled: true
+    state: restarted
+
+- name: Verify Suricata is running
+  ansible.builtin.command: systemctl is-active suricata
+  register: suricata_status
+  changed_when: false
+
+- name: Print Suricata status
+  ansible.builtin.debug:
+    msg: "Suricata 6 status: {{ suricata_status.stdout }}"

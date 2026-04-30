@@ -1,0 +1,88 @@
+---
+# ─────────────────────────────────────────────────────────────
+# ARCHIVIRT — Common Role: Base configuration for all VMs
+# ─────────────────────────────────────────────────────────────
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install common packages
+  ansible.builtin.apt:
+    name:
+      - openssh-server
+      - net-tools
+      - iproute2
+      - tcpdump
+      - curl
+      - wget
+      - vim
+      - htop
+      - iotop
+      - git
+      - python3
+      - python3-pip
+      - ca-certificates
+      - gnupg
+      - lsb-release
+      - ntp
+    state: present
+
+- name: Set timezone to UTC
+  community.general.timezone:
+    name: "UTC"
+
+- name: Enable and start NTP
+  ansible.builtin.systemd:
+    name: ntp
+    enabled: true
+    state: started
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Configure /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "10.0.2.11  archivirt-target-01"
+    - "10.0.2.12  archivirt-target-02"
+    - "10.0.2.13  archivirt-target-03"
+    - "10.0.3.10  archivirt-monitor-ids"
+    - "10.0.4.10  archivirt-attacker"
+    - "10.0.5.10  archivirt-manager"
+
+- name: Disable UFW firewall (lab environment — controlled by scenario)
+  ansible.builtin.systemd:
+    name: ufw
+    enabled: false
+    state: stopped
+  ignore_errors: true
+
+- name: Enable IP forwarding (for routing between subnets)
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Create ARCHIVIRT working directory
+  ansible.builtin.file:
+    path: /opt/archivirt
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Create logs directory
+  ansible.builtin.file:
+    path: /opt/archivirt/logs
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
