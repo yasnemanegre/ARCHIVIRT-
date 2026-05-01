@@ -16,7 +16,11 @@ locals {
         sudo: ['ALL=(ALL) NOPASSWD:ALL']
         ssh_authorized_keys:
           - ${local.ssh_pub_key}
-    package_update: true
+    chpasswd:
+  list: |
+    ubuntu:archivirt123
+  expire: False
+package_update: true
     packages:
       - openssh-server
       - net-tools
@@ -52,7 +56,7 @@ resource "libvirt_cloudinit_disk" "manager" {
   network_config = <<-EOF
     version: 2
     ethernets:
-      eth0:
+      ens3:
         addresses: [${var.ip_manager}/24]
         gateway4: 10.0.5.1
   EOF
@@ -111,7 +115,7 @@ resource "libvirt_cloudinit_disk" "attacker" {
   network_config = <<-EOF
     version: 2
     ethernets:
-      eth0:
+      ens3:
         addresses: [${var.ip_attacker}/24]
         gateway4: 10.0.4.1
       eth1:
@@ -172,7 +176,7 @@ resource "libvirt_cloudinit_disk" "monitor" {
   network_config = <<-EOF
     version: 2
     ethernets:
-      eth0:
+      ens3:
         addresses: [${var.ip_monitor}/24]
         gateway4: 10.0.3.1
       eth1:
@@ -243,7 +247,7 @@ resource "libvirt_cloudinit_disk" "target" {
   network_config = <<-EOF
     version: 2
     ethernets:
-      eth0:
+      ens3:
         addresses: [${each.value.ip}/24]
         gateway4: 10.0.2.1
   EOF
