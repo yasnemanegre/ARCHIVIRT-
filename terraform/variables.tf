@@ -1,6 +1,6 @@
 # ============================================================
 # ARCHIVIRT - Terraform Variables
-# Author: Yasnemanegre SAVADOGO (PhD Student, SPbGUPTD)
+# Author: Yasnemanegre SAWADOGO (PhD Student, SPbGUPTD)
 # ============================================================
 
 # --- Network CIDRs ---
@@ -17,10 +17,16 @@ variable "ip_target_01" { default = "10.0.2.11" }
 variable "ip_target_02" { default = "10.0.2.12" }
 variable "ip_target_03" { default = "10.0.2.13" }
 
-# --- VM Resources ---
-variable "vm_vcpu"    { default = 2 }
-variable "vm_ram"     { default = 4096 }
-variable "vm_disk_gb" { default = 20 }
+# --- VM Resources (per role) ---
+variable "vm_vcpu"          { default = 2    }
+variable "vm_disk_gb"       { default = 20   }
+variable "vm_ram_monitor"   { default = 1536 }
+variable "vm_ram_manager"   { default = 1536 }
+variable "vm_ram_attacker"  { default = 1024 }
+variable "vm_ram_target"    { default = 1024 }
+variable "vm_ram_target02"  { default = 768  }
+variable "vm_memory_mb"     { default = 1024 }
+variable "vm_ram"           { default = 1024 }
 
 # --- Storage ---
 variable "storage_pool" { default = "default" }
@@ -37,6 +43,3 @@ variable "host_bridge" { default = "enp0s3" }
 variable "ubuntu_image_path" {
   default = "/var/lib/libvirt/images/ubuntu-22.04-server-cloudimg-amd64.img"
 }
-
-# Alias for VM RAM (used in vms.tf)
-variable "vm_memory_mb" { default = 4096 }
