@@ -1,0 +1,20 @@
+{
+  "ids": "Suricata 6.0.4",
+  "date": "2026-05-02",
+  "total_runs": 50,
+  "scenarios": {
+    "SCN-001": {"name": "Port Scan Nmap", "runs": 10, "alerts": 1109},
+    "SCN-002": {"name": "SSH Brute-force Hydra", "runs": 10, "alerts": 51},
+    "SCN-003": {"name": "SQL Injection sqlmap", "runs": 10, "alerts": 845},
+    "SCN-004": {"name": "DDoS Slowloris", "runs": 10, "alerts": 12},
+    "SCN-005": {"name": "Normal Traffic", "runs": 10, "alerts": 1670}
+  },
+  "total_alerts": 3687,
+  "detection_rate_percent": {
+    "SCN-001": 100,
+    "SCN-002": 100,
+    "SCN-003": 100,
+    "SCN-004": 100,
+    "SCN-005": "baseline"
+  }
+}
