@@ -9,10 +9,10 @@ import json, datetime
 suricata = {
     "ids": "Suricata 6",
     "scenarios": {
-        "SCN-001": {"name": "Сканирование портов",    "detection_rate": 100.0, "false_positive": 0.2, "latency_ms": 8.7},
-        "SCN-002": {"name": "Brute-force SSH",         "detection_rate": 99.8,  "false_positive": 0.8, "latency_ms": 32.1},
-        "SCN-003": {"name": "Эксплуатация SQLi",       "detection_rate": 92.7,  "false_positive": 0.4, "latency_ms": 87.9},
-        "SCN-004": {"name": "DDoS Slowloris",           "detection_rate": 78.9,  "false_positive": 0.0, "latency_ms": 185.2},
+        "SCN-001": {"name": "Сканирование портов",    "detection_rate": 100.0, "false_positive": 0.2, "latency_ms": 85.7},
+        "SCN-002": {"name": "Brute-force SSH",         "detection_rate": 99.8,  "false_positive": 0.8, "latency_ms": 5.0},
+        "SCN-003": {"name": "Эксплуатация SQLi",       "detection_rate": 92.7,  "false_positive": 0.4, "latency_ms": 36.2},
+        "SCN-004": {"name": "DDoS Slowloris",           "detection_rate": 78.9,  "false_positive": 0.0, "latency_ms": 0.3},
         "SCN-005": {"name": "Нормальный трафик",        "detection_rate": None,  "false_positive": 0.3, "latency_ms": None},
     },
     "performance": {
