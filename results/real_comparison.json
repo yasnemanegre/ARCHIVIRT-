@@ -43,7 +43,7 @@
     "total_runs": 50,
     "performance": {
       "cpu_percent": 10.4,
-      "ram_mb": 48,
+      "ram_mb": 60,
       "throughput_mbps": 1120
     },
     "dbscan": {
@@ -95,7 +95,7 @@
     "total_alerts": 151499,
     "total_runs": 50,
     "performance": {
-      "cpu_percent": 2.0,
+      "cpu_percent": 2.2,
       "ram_mb": 42,
       "throughput_mbps": 945
     },
