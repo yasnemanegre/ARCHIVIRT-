@@ -33,3 +33,15 @@
 - import_playbook: suricata_scenario.yml
   vars:
     scenario: "SCN-005"
+
+- name: ARCHIVIRT - Generate final report
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Run generate_report.py
+      shell: python3 /home/archivirt/ARCHIVIRT/scripts/generate_report.py
+      register: report
+    - name: Show report summary
+      debug:
+        msg: "{{ report.stdout_lines }}"
