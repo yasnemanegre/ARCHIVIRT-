@@ -3,12 +3,14 @@
   "date": "2026-05-04",
   "method": "Ansible IaC playbook + run_snort.sh",
   "scenarios": {
-    "SCN-001": {"name": "Port Scan", "alerts": 30691, "runs": 10},
-    "SCN-002": {"name": "SSH Brute-force", "alerts": 27, "runs": 10},
-    "SCN-003": {"name": "SQL Injection", "alerts": 2, "runs": 10},
-    "SCN-004": {"name": "DDoS Slowloris", "alerts": 2792, "runs": 10},
-    "SCN-005": {"name": "Normal Traffic", "alerts": 2, "runs": 10}
+    "SCN-001": {"name": "Сканирование портов", "alerts": 150930},
+    "SCN-002": {"name": "Brute-force SSH", "alerts": 162},
+    "SCN-003": {"name": "Эксплуатация SQLi", "alerts": 150},
+    "SCN-004": {"name": "DDoS Slowloris", "alerts": 0},
+    "SCN-005": {"name": "Нормальный трафик", "alerts": 257}
   },
-  "total_alerts": 33514,
-  "total_runs": 50
+  "total_alerts": 151499,
+  "total_runs": 50,
+  "performance": {"cpu_percent": 68.2, "ram_mb": 512, "throughput_mbps": 945},
+  "dbscan": {"clusters": 1, "anomalies": 14, "anomaly_rate": 0.47}
 }
