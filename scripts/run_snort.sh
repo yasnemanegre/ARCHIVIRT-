@@ -25,7 +25,6 @@ case $ACTION in
         truncate -s 0 "${LOG_DIR}/alert_fast.txt" 2>/dev/null || true
         truncate -s 0 "${LOG_DIR}/alert_json.txt" 2>/dev/null || true
         echo "[ARCHIVIRT] Starting Snort 3 on $IFACE for $SCENARIO ..."
-        nohup "$SNORT_BIN" -i "$IFACE" -c "$CONFIG" \
             -l "$LOG_DIR" --daq-dir "$DAQ_DIR" \
             > "${LOG_DIR}/snort_stdout.log" 2>&1 &
         SNORT_PID=$!
