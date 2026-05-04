@@ -1,0 +1,35 @@
+---
+# ARCHIVIRT - Run all scenarios for both IDS (master playbook)
+# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+# Usage: ansible-playbook run_all_scenarios.yml -i ansible/inventory/hosts.ini
+
+- import_playbook: snort_scenario.yml
+  vars:
+    scenario: "SCN-001"
+- import_playbook: snort_scenario.yml
+  vars:
+    scenario: "SCN-002"
+- import_playbook: snort_scenario.yml
+  vars:
+    scenario: "SCN-003"
+- import_playbook: snort_scenario.yml
+  vars:
+    scenario: "SCN-004"
+- import_playbook: snort_scenario.yml
+  vars:
+    scenario: "SCN-005"
+- import_playbook: suricata_scenario.yml
+  vars:
+    scenario: "SCN-001"
+- import_playbook: suricata_scenario.yml
+  vars:
+    scenario: "SCN-002"
+- import_playbook: suricata_scenario.yml
+  vars:
+    scenario: "SCN-003"
+- import_playbook: suricata_scenario.yml
+  vars:
+    scenario: "SCN-004"
+- import_playbook: suricata_scenario.yml
+  vars:
+    scenario: "SCN-005"
