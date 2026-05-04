@@ -1,108 +1,96 @@
 {
+  "title": "ARCHIVIRT - IDS Comparison Report",
+  "generated": "2026-05-04",
+  "table2_title": "Метрики эффективности обнаружения (Среднее за 10 выполнений)",
+  "table3_title": "Метрики производительности системы (Пик во время тестов)",
   "suricata": {
     "ids": "Suricata 6.0.4",
-    "date": "2026-05-03",
+    "date": "2026-05-04",
     "scenarios": {
       "SCN-001": {
-        "name": "\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043e\u0440\u0442\u043e\u0432",
+        "name": "Port Scan Nmap",
         "alerts": 1109,
-        "detection_rate": 100.0,
-        "false_positive": 1.67,
-        "latency_ms": 85.7
+        "detection_rate": 3.7,
+        "false_positive": 45.3,
+        "latency_ms": null
       },
       "SCN-002": {
-        "name": "Brute-force SSH",
+        "name": "SSH Brute-force Hydra",
         "alerts": 51,
-        "detection_rate": 100.0,
-        "false_positive": 1.67,
-        "latency_ms": 5.0
+        "detection_rate": 51.0,
+        "false_positive": 45.3,
+        "latency_ms": null
       },
       "SCN-003": {
-        "name": "\u042d\u043a\u0441\u043f\u043b\u0443\u0430\u0442\u0430\u0446\u0438\u044f SQLi",
+        "name": "SQL Injection sqlmap",
         "alerts": 845,
-        "detection_rate": 100.0,
-        "false_positive": 1.67,
-        "latency_ms": 36.2
+        "detection_rate": 56.3,
+        "false_positive": 45.3,
+        "latency_ms": null
       },
       "SCN-004": {
         "name": "DDoS Slowloris",
         "alerts": 12,
-        "detection_rate": 100.0,
-        "false_positive": 0.0,
-        "latency_ms": 0.3
+        "detection_rate": 0.2,
+        "false_positive": 45.3,
+        "latency_ms": null
       },
       "SCN-005": {
-        "name": "\u041d\u043e\u0440\u043c\u0430\u043b\u044c\u043d\u044b\u0439 \u0442\u0440\u0430\u0444\u0438\u043a",
+        "name": "Normal Traffic",
         "alerts": 1670,
         "detection_rate": null,
-        "false_positive": 1.67,
+        "false_positive": 45.3,
         "latency_ms": null
       }
     },
     "total_alerts": 3687,
     "total_runs": 50,
-    "performance": {
-      "cpu_percent": 10.4,
-      "ram_mb": 48,
-      "throughput_mbps": 1120
-    },
-    "dbscan": {
-      "clusters": 2,
-      "anomalies": 0,
-      "anomaly_rate": 0.0
-    }
+    "performance": {},
+    "fpr_percent": 45.3
   },
   "snort": {
     "ids": "Snort 3.12.2.0",
-    "date": "2026-05-03",
+    "date": "2026-05-04",
     "scenarios": {
       "SCN-001": {
-        "name": "\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043f\u043e\u0440\u0442\u043e\u0432",
-        "alerts": 150930,
+        "name": "Port Scan",
+        "alerts": 30691,
         "detection_rate": 100.0,
-        "false_positive": 0.26,
-        "latency_ms": 12.3
+        "false_positive": 0.0,
+        "latency_ms": null
       },
       "SCN-002": {
-        "name": "Brute-force SSH",
-        "alerts": 162,
-        "detection_rate": 100.0,
-        "false_positive": 0.26,
-        "latency_ms": 45.6
+        "name": "SSH Brute-force",
+        "alerts": 27,
+        "detection_rate": 27.0,
+        "false_positive": 0.0,
+        "latency_ms": null
       },
       "SCN-003": {
-        "name": "\u042d\u043a\u0441\u043f\u043b\u0443\u0430\u0442\u0430\u0446\u0438\u044f SQLi",
-        "alerts": 150,
-        "detection_rate": 100.0,
-        "false_positive": 0.26,
-        "latency_ms": 102.4
+        "name": "SQL Injection",
+        "alerts": 2,
+        "detection_rate": 0.1,
+        "false_positive": 0.0,
+        "latency_ms": null
       },
       "SCN-004": {
         "name": "DDoS Slowloris",
-        "alerts": 0,
-        "detection_rate": 0.0,
+        "alerts": 2792,
+        "detection_rate": 55.8,
         "false_positive": 0.0,
         "latency_ms": null
       },
       "SCN-005": {
-        "name": "\u041d\u043e\u0440\u043c\u0430\u043b\u044c\u043d\u044b\u0439 \u0442\u0440\u0430\u0444\u0438\u043a",
-        "alerts": 257,
+        "name": "Normal Traffic",
+        "alerts": 2,
         "detection_rate": null,
-        "false_positive": 0.26,
+        "false_positive": 0.0,
         "latency_ms": null
       }
     },
-    "total_alerts": 151499,
+    "total_alerts": 33514,
     "total_runs": 50,
-    "performance": {
-      "cpu_percent": 2.0,
-      "ram_mb": 42,
-      "throughput_mbps": 945
-    },
-    "dbscan": {
-      "clusters": 1,
-      "anomalies": 14,
-      "anomaly_rate": 0.47
-    }
+    "performance": {},
+    "fpr_percent": 0.0
   }
 }
