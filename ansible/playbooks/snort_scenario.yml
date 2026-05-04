@@ -3,17 +3,25 @@
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook snort_scenario.yml -e "scenario=SCN-001"
 
-- name: ARCHIVIRT - Setup mirrors and start Snort3
+- name: ARCHIVIRT - Setup mirrors on localhost
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Run archivirt_mirrors.sh
+      shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+      register: mirrors
+    - name: Show mirrors status
+      debug:
+        msg: "Mirrors: {{ mirrors.stdout_lines | default([]) | select('search', '✅') | list }}"
+
+- name: ARCHIVIRT - Start Snort3 on monitor
   hosts: monitor
   become: yes
   vars:
     scenario: "{{ scenario | default('SCN-001') }}"
     snort_script: /opt/archivirt/scripts/run_snort.sh
   tasks:
-    - name: Setup traffic mirrors
-      shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
-      delegate_to: localhost
-      become: yes
     - name: Deploy run_snort.sh
       copy:
         src: /home/archivirt/ARCHIVIRT/scripts/run_snort.sh

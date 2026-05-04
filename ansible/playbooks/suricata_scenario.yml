@@ -3,17 +3,21 @@
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: ansible-playbook suricata_scenario.yml -e "scenario=SCN-001"
 
-- name: ARCHIVIRT - Setup mirrors and start Suricata
+- name: ARCHIVIRT - Setup mirrors on localhost
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - name: Run archivirt_mirrors.sh
+      shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+
+- name: ARCHIVIRT - Start Suricata on monitor
   hosts: monitor
   become: yes
   vars:
     scenario: "{{ scenario | default('SCN-001') }}"
     suricata_script: /opt/archivirt/scripts/run_suricata.sh
   tasks:
-    - name: Setup traffic mirrors
-      shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
-      delegate_to: localhost
-      become: yes
     - name: Deploy run_suricata.sh
       copy:
         src: /home/archivirt/ARCHIVIRT/scripts/run_suricata.sh

@@ -25,7 +25,7 @@ case $ACTION in
         truncate -s 0 "${LOG_DIR}/alert_fast.txt" 2>/dev/null || true
         truncate -s 0 "${LOG_DIR}/alert_json.txt" 2>/dev/null || true
         echo "[ARCHIVIRT] Starting Snort 3 on $IFACE for $SCENARIO ..."
-            -l "$LOG_DIR" --daq-dir "$DAQ_DIR" \
+        ${SNORT_BIN} -i "$IFACE" -c "$CONFIG" -l "$LOG_DIR" --daq-dir "$DAQ_DIR" \
             > "${LOG_DIR}/snort_stdout.log" 2>&1 &
         SNORT_PID=$!
         echo $SNORT_PID > "$PID_FILE"
@@ -50,9 +50,7 @@ case $ACTION in
             echo "[ARCHIVIRT] Snort3 stopped. Alerts: $ALERTS"
         else
             echo "[ARCHIVIRT] No PID file for $SCENARIO — killing all snort"
-            pkill -f snort || true
-            ALERTS=$(wc -l < "${LOG_DIR}/alert_fast.txt" 2>/dev/null || echo 0)
-            echo "[ARCHIVIRT] Alerts: $ALERTS"
+            pkill -9 -f snort || true
         fi
         ;;
     *)

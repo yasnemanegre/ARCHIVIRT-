@@ -59,15 +59,15 @@
         "scenario": "DDoS Slowloris",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 0,
-          "detection_rate": "N/A",
+          "alerts": 2767,
+          "detection_rate": 100.0,
           "false_positive": 0.2,
           "latency_ms": "N/A"
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 12,
-          "detection_rate": "N/A",
+          "alerts": 4580,
+          "detection_rate": 100.0,
           "false_positive": 45.3,
           "latency_ms": "N/A"
         }

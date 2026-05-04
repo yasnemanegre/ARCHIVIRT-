@@ -1,0 +1,15 @@
+---
+# ARCHIVIRT - Host setup (sudo NOPASSWD for IaC)
+# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
+# Run once: ansible-playbook setup_host.yml -i localhost,
+
+- name: ARCHIVIRT - Configure host for IaC
+  hosts: localhost
+  connection: local
+  become: yes
+  tasks:
+    - name: Enable passwordless sudo for archivirt
+      copy:
+        content: "archivirt ALL=(ALL) NOPASSWD: ALL\n"
+        dest: /etc/sudoers.d/archivirt
+        mode: 0440
