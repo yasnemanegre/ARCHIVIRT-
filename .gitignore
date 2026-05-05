@@ -47,3 +47,4 @@ Thumbs.db
 # Ansible retry files
 ansible/*.retry
 suricata_eve_*.json
+packages/

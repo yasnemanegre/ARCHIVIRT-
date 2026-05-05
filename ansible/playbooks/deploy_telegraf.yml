@@ -1,0 +1,46 @@
+---
+- name: Deploy Telegraf on all VMs except manager (offline)
+  hosts: all:!manager
+  become: yes
+  tasks:
+    - name: Copy Telegraf .deb package
+      copy:
+        src: /home/archivirt/ARCHIVIRT/packages/telegraf_1.28.1-1_amd64.deb
+        dest: /tmp/telegraf.deb
+
+    - name: Install Telegraf from local package
+      apt:
+        deb: /tmp/telegraf.deb
+        state: present
+
+    - name: Configure Telegraf for InfluxDB v2
+      copy:
+        content: |
+          [agent]
+            interval = "10s"
+            round_interval = true
+
+          [[outputs.influxdb_v2]]
+            urls = ["http://10.0.5.10:8086"]
+            token = "archivirt-telegraf-token"
+            organization = "archivirt"
+            bucket = "archivirt"
+
+          [[inputs.cpu]]
+            percpu = false
+            totalcpu = true
+            fieldpass = ["usage_user", "usage_system"]
+          [[inputs.mem]]
+          [[inputs.net]]
+          [[inputs.disk]]
+          [[inputs.system]]
+        dest: /etc/telegraf/telegraf.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Restart and enable Telegraf
+      systemd:
+        name: telegraf
+        state: restarted
+        enabled: yes
