@@ -1,11 +1,11 @@
 {
-  "title": "ARCHIVIRT - Сравнительный отчёт IDS",
+  "title": "ARCHIVIRT - IDS Comparison Report",
   "date": "2026-05-06",
   "table2": {
-    "title": "Таблица 2: Метрики эффективности обнаружения (среднее за 10 выполнений)",
+    "title": "Table 2: Detection Efficiency Metrics (average over 10 runs)",
     "rows": [
       {
-        "scenario": "Сканирование портов",
+        "scenario": "Port Scan",
         "snort": {
           "alerts": 30604,
           "detection": 0.0,
@@ -20,7 +20,7 @@
         }
       },
       {
-        "scenario": "Brute-force SSH",
+        "scenario": "SSH Brute-force",
         "snort": {
           "alerts": 27,
           "detection": 0.0,
@@ -35,7 +35,7 @@
         }
       },
       {
-        "scenario": "SQL-инъекция",
+        "scenario": "SQL Injection",
         "snort": {
           "alerts": 0,
           "detection": 0.0,
@@ -65,7 +65,7 @@
         }
       },
       {
-        "scenario": "Нормальный трафик",
+        "scenario": "Normal Traffic",
         "snort": {
           "alerts": 0,
           "detection": "N/A",
@@ -82,7 +82,7 @@
     ]
   },
   "table3": {
-    "title": "Таблица 3: Метрики производительности системы (пик во время тестов)",
+    "title": "Table 3: System Performance Metrics (peak during tests)",
     "rows": [
       {
         "ids": "Snort",
@@ -99,7 +99,7 @@
     ]
   },
   "table4": {
-    "title": "Таблица 4: Результаты DBSCAN/UEBA анализа",
+    "title": "Table 4: DBSCAN/UEBA Analysis Results",
     "rows": [
       {
         "ids": "Snort",

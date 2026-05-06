@@ -2,13 +2,16 @@
 # run_suricata.sh - Start/stop Suricata for a single scenario (ARCHIVIRT IaC pipeline)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
 # Usage: sudo bash run_suricata.sh start|stop SCENARIO_NAME
+#
+# NOTE : Suricata is configured via /etc/suricata/suricata.yaml (workers mode + af-packet on ens4)
+#        The -i option is still required by Suricata 6.0.4 for live capture.
 
 ACTION=$1
 SCENARIO=${2:-default}
 LOG_DIR=/var/log/suricata/${SCENARIO}
 PID_FILE=${LOG_DIR}/suricata.pid
 CONFIG=/etc/suricata/suricata.yaml
-IFACE=ens4
+IFACE=ens4                       # used for live capture (-i) and promisc mode setting
 SURICATA_BIN=/usr/bin/suricata
 
 if [ "$#" -ne 2 ]; then
@@ -23,7 +26,7 @@ case $ACTION in
         ip link set "$IFACE" promisc on
         truncate -s 0 "${LOG_DIR}/eve.json" 2>/dev/null || true
         echo "[ARCHIVIRT] Starting Suricata on $IFACE for $SCENARIO ..."
-        "$SURICATA_BIN" -c "$CONFIG" -i "$IFACE" -l "$LOG_DIR" --runmode autofp \
+        "$SURICATA_BIN" -c "$CONFIG" -i "$IFACE" -l "$LOG_DIR" \
             > "${LOG_DIR}/suricata_stdout.log" 2>&1 &
         SURICATA_PID=$!
         echo $SURICATA_PID > "$PID_FILE"

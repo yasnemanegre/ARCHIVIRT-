@@ -1,0 +1,51 @@
+# /etc/suricata/suricata.yaml – ARCHIVIRT (workers mode + af-packet)
+%YAML 1.1
+---
+
+# Runmode
+runmode: workers
+
+# Default logging directory
+default-log-dir: /var/log/suricata
+
+# Configure af-packet capture for ens4
+af-packet:
+  - interface: ens4
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    use-mmap: yes
+    ring-size: 200000
+    buffer-size: 64536
+    disable-promisc: no
+
+# Rule management
+default-rule-path: /usr/share/suricata/rules
+rule-files:
+  - suricata.rules
+  - local.rules
+
+# Classification and reference configs
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# Outputs
+outputs:
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: no
+  - eve-log:
+      enabled: yes
+      filename: eve.json
+      types:
+        - alert
+        - http
+        - dns
+        - tls
+      xff:
+        enabled: no
+
+# Threading
+threading:
+  detect-thread-ratio: 0.5

@@ -43,7 +43,7 @@
       shell: |
         > /tmp/attack_start_times_SCN-001.txt
         for i in $(seq 1 10); do
-          date +%s >> /tmp/attack_start_times_SCN-001.txt
+          date -u +%s >> /tmp/attack_start_times_SCN-001.txt
           nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
           sleep 3
         done
@@ -53,7 +53,7 @@
       shell: |
         > /tmp/attack_start_times_SCN-002.txt
         for i in $(seq 1 10); do
-          date +%s >> /tmp/attack_start_times_SCN-002.txt
+          date -u +%s >> /tmp/attack_start_times_SCN-002.txt
           nmap -sS -Pn -p 22 --min-rate 500 -T4 10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
           sleep 3
         done
@@ -68,7 +68,7 @@
           shell: |
             > /tmp/attack_start_times_SCN-003.txt
             for i in $(seq 1 10); do
-              date +%s >> /tmp/attack_start_times_SCN-003.txt
+              date -u +%s >> /tmp/attack_start_times_SCN-003.txt
               sqlmap -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
                 --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
                 --batch --level=1 --risk=1 --technique=B --output-dir=/tmp/sqlmap_$i 2>/dev/null
@@ -80,7 +80,7 @@
       shell: |
         > /tmp/attack_start_times_SCN-004.txt
         for i in $(seq 1 10); do
-          date +%s >> /tmp/attack_start_times_SCN-004.txt
+          date -u +%s >> /tmp/attack_start_times_SCN-004.txt
           timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py 10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
           sleep 5
         done
@@ -90,7 +90,7 @@
       shell: |
         > /tmp/attack_start_times_SCN-005.txt
         for i in $(seq 1 10); do
-          date +%s >> /tmp/attack_start_times_SCN-005.txt
+          date -u +%s >> /tmp/attack_start_times_SCN-005.txt
           curl -s http://10.0.2.11/ > /dev/null
           curl -s http://10.0.2.12/ > /dev/null
           sleep 3
