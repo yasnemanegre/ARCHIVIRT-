@@ -22,6 +22,8 @@ alert_json = {
 }
 
 -- Utilisation du chemin absolu pour éviter toute ambiguïté
+network = { checksum_eval = 'none' }
+
 ips = {
     include = '/etc/snort3/rules/archivirt.rules'
 }

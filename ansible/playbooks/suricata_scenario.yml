@@ -40,7 +40,7 @@
   tasks:
 
     - name: Run archivirt_mirrors.sh
-      shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
+      shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
       register: mirrors
 
     - name: Show mirrors status

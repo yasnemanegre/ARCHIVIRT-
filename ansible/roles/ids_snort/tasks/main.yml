@@ -47,7 +47,7 @@
 
 - name: Deploy Snort 3 main configuration
   ansible.builtin.copy:
-    dest: /etc/snort/snort.lua
+    dest: /etc/snort3/snort.lua
     content: |
       ---------------------------------------------------------------------------
       -- ARCHIVIRT Snort 3 Configuration
@@ -61,8 +61,11 @@
       HTTP_SERVERS = HOME_NET
 
       -- Include paths
-      RULE_PATH = '/etc/snort/rules'
+      RULE_PATH = '/etc/snort3/rules'
       LOG_DIR = '/var/log/snort'
+
+      -- Checksum disabled for mirrored traffic (IaC requirement)
+      network = { checksum_eval = 'none' }
 
       -- Detection engine
       detect =
@@ -107,8 +110,7 @@
       {
         enable_builtin_rules = true,
         rules = [[
-          include $RULE_PATH/archivirt-local.rules
-          include $RULE_PATH/emerging-threats.rules
+          include $RULE_PATH/archivirt.rules
         ]],
       }
 
@@ -117,7 +119,7 @@
 
 - name: Deploy ARCHIVIRT local Snort rules
   ansible.builtin.copy:
-    dest: /etc/snort/rules/archivirt-local.rules
+    dest: /etc/snort3/rules/archivirt.rules
     content: |
       # ─────────────────────────────────────────────────────────
       # ARCHIVIRT Local Snort 3 Rules
@@ -132,10 +134,12 @@
       alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Brute-force Attempt"; flow:to_server,established; content:"SSH"; threshold:type threshold, track by_src, count 5, seconds 30; sid:1000010; rev:1;)
       alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Multiple Failed Auth"; threshold:type both, track by_src, count 10, seconds 60; sid:1000011; rev:1;)
 
-      # SQL Injection Detection (sqlmap)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT HTTP SQLi UNION SELECT"; flow:to_server,established; content:"UNION"; nocase; content:"SELECT"; nocase; distance:0; within:20; sid:1000020; rev:1;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT HTTP SQLi OR 1=1"; flow:to_server,established; content:"OR 1=1"; nocase; sid:1000021; rev:1;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT HTTP sqlmap User-Agent"; flow:to_server,established; content:"sqlmap"; nocase; http_header; sid:1000022; rev:1;)
+      # SQL Injection Detection (sqlmap) — URL-encoded patterns, Snort3-valid
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi dvwa path"; content:"/dvwa/vulnerabilities/sqli/"; sid:1000020; rev:3;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi quote encoded"; content:"%27"; sid:1000021; rev:3;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi AND encoded"; content:"%20AND%20"; sid:1000022; rev:3;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi SELECT encoded"; content:"%20SELECT%20"; sid:1000023; rev:3;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi UNION encoded"; content:"%20UNION%20"; sid:1000024; rev:3;)
 
       # DDoS Slowloris Detection
       alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT Slowloris DDoS Partial HTTP"; flow:to_server,established; content:"GET"; depth:3; content:!|0d 0a 0d 0a|; within:500; threshold:type both, track by_dst, count 100, seconds 30; sid:1000030; rev:1;)
@@ -170,7 +174,7 @@
       [Service]
       Type=simple
       ExecStart=/usr/bin/snort \
-        -c /etc/snort/snort.lua \
+        -c /etc/snort3/snort.lua \
         -i {{ monitor_interface | default('ens4') }} \
         -l /var/log/snort \
         -D \

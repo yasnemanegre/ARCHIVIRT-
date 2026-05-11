@@ -13,7 +13,40 @@ from datetime import datetime
 MAX_EVENTS = 3000
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "results")
 
+def parse_snort_fastlog(line):
+    # fast.log format: 05/10-09:20:40.962754 [**] [1:sid:rev] "msg" ...
+    m = re.match(r'(\d+/\d+-\d+:\d+:\d+\.\d+).*\[(\d+):(\d+):(\d+)\].*{(\w+)}\s+(\S+)\s*->\s*(\S+)', line)
+    if not m:
+        return None
+    ts_str, gid, sid, rev, proto, src, dst = m.groups()
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(ts_str, "%m/%d-%H:%M:%S.%f").replace(year=2026)
+        ts = dt.timestamp()
+    except:
+        ts = 0.0
+    src_port = int(src.split(":")[-1]) if ":" in src else 0
+    dst_port = int(dst.split(":")[-1]) if ":" in dst else 0
+    return [ts % 3600, src_port / 65535, dst_port / 65535, int(sid) % 1000 / 1000]
+
+def parse_snort_fastlog(line):
+    import re as _re
+    m = _re.match(r"(\d+/\d+-\d+:\d+:\d+\.\d+).*\[(\d+):(\d+):(\d+)\].*{(\w+)}\s+(\S+)\s*->\s*(\S+)", line)
+    if not m:
+        return None
+    ts_str, gid, sid, rev, proto, src, dst = m.groups()
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(ts_str, "%m/%d-%H:%M:%S.%f").replace(year=2026)
+        ts = dt.timestamp()
+    except:
+        ts = 0.0
+    src_port = int(src.split(":")[-1]) if ":" in src else 0
+    dst_port = int(dst.split(":")[-1]) if ":" in dst else 0
+    return [ts % 3600, src_port / 65535, dst_port / 65535, int(sid) % 1000 / 1000]
+
 def parse_snort(line):
+    import json
     d = json.loads(line)
     src = d.get('src_ap','0:0').split(':')
     dst = d.get('dst_ap','0:0').split(':')
@@ -56,13 +89,20 @@ def run_dbscan(events, name):
     return {"clusters": n_clusters, "anomalies": n_noise, "anomaly_rate": rate}
 
 # Snort
+import re as _re
 events_snort = []
-for f in sorted(glob.glob('/tmp/snort3_SCN-*_alerts.json')):
+# Try fast.log first (Snort 3 default output)
+fastlogs = sorted(glob.glob('/tmp/snort3_SCN-*_fast.log'))
+jsonlogs = sorted(glob.glob('/tmp/snort3_SCN-*_alerts.json'))
+snort_files = fastlogs if fastlogs else jsonlogs
+is_fastlog = bool(fastlogs)
+for f in snort_files:
     with open(f) as fh:
         for line in fh:
             try:
-                feat = parse_snort(line)
-                events_snort.append(feat)
+                feat = parse_snort_fastlog(line) if is_fastlog else parse_snort(line)
+                if feat:
+                    events_snort.append(feat)
             except:
                 pass
 snort_result = run_dbscan(events_snort, "Snort")

@@ -3,37 +3,37 @@
   "date": "2026-05-11",
   "scenarios": {
     "SCN-001": {
-      "alerts": 41,
+      "alerts": 40,
       "detection_rate": 100.0,
-      "latency_ms": 1796.1,
-      "false_positive": 0.69
+      "latency_ms": 1099.0,
+      "false_positive": 0.73
     },
     "SCN-002": {
-      "alerts": 41,
+      "alerts": 44,
       "detection_rate": 100.0,
-      "latency_ms": 2625.5,
-      "false_positive": 0.69
+      "latency_ms": 1287.3,
+      "false_positive": 0.73
     },
     "SCN-003": {
-      "alerts": 1143,
+      "alerts": 1154,
       "detection_rate": 100.0,
       "latency_ms": 0.0,
-      "false_positive": 0.69
+      "false_positive": 0.73
     },
     "SCN-004": {
-      "alerts": 11034,
+      "alerts": 10728,
       "detection_rate": 100.0,
       "latency_ms": 0.0,
-      "false_positive": 0.69
+      "false_positive": 0.73
     },
     "SCN-005": {
-      "alerts": 85,
+      "alerts": 88,
       "detection_rate": "N/A",
       "latency_ms": "N/A",
-      "false_positive": 0.69
+      "false_positive": 0.73
     }
   },
-  "total_alerts": 12344,
+  "total_alerts": 12054,
   "performance": {
     "latency_ms": 0.834,
     "snort_cpu": 1.6,
