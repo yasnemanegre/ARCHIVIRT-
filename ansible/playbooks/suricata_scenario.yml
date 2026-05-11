@@ -100,12 +100,11 @@
     - name: "SCN-001 Port Scan (nmap SYN, ports 1-1024, 10 iterations)"
       shell: |
         > /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
-        nmap -sL 10.0.2.11 10.0.2.12 10.0.2.13 > /dev/null 2>&1
         for i in $(seq 1 10); do
           date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
           nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
-          sleep 3
+          sleep 5
         done
       when: scenario == "SCN-001"
 
@@ -113,12 +112,11 @@
     - name: "SCN-002 SSH Brute-force (nmap port 22, 10 iterations)"
       shell: |
         > /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
-        nmap -sL 10.0.2.11 10.0.2.12 10.0.2.13 > /dev/null 2>&1
         for i in $(seq 1 10); do
           date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
           nmap -sS -Pn -p 22 --min-rate 500 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
-          sleep 3
+          sleep 5
         done
       when: scenario == "SCN-002"
 
@@ -197,6 +195,13 @@
     ids_prefix:      "{{ ids_prefix | default('suricata') }}"
     suricata_script: /opt/archivirt/scripts/run_suricata.sh
   tasks:
+
+    - name: Send SIGUSR2 to Suricata to force eve.json flush
+      shell: "kill -USR2 $(pgrep -f 'suricata') 2>/dev/null || true"
+      ignore_errors: yes
+    - name: Wait for Suricata flush to complete
+      pause:
+        seconds: 5
 
     - name: Stop Suricata
       shell: "bash {{ suricata_script }} stop {{ scenario }}"

@@ -98,12 +98,11 @@
     - name: "SCN-001 Port Scan (nmap SYN, ports 1-1024, 10 iterations)"
       shell: |
         > /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
-        nmap -sL 10.0.2.11 10.0.2.12 10.0.2.13 > /dev/null 2>&1
         for i in $(seq 1 10); do
           date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
           nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
-          sleep 3
+          sleep 5
         done
       when: scenario == "SCN-001"
 
@@ -111,12 +110,11 @@
     - name: "SCN-002 SSH Brute-force (nmap port 22, 10 iterations)"
       shell: |
         > /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
-        nmap -sL 10.0.2.11 10.0.2.12 10.0.2.13 > /dev/null 2>&1
         for i in $(seq 1 10); do
           date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
           nmap -sS -Pn -p 22 --min-rate 500 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
-          sleep 3
+          sleep 5
         done
       when: scenario == "SCN-002"
 
@@ -193,6 +191,13 @@
     snort_script: /opt/archivirt/scripts/run_snort.sh
   tasks:
 
+    - name: Send SIGUSR1 to Snort3 to force JSON buffer flush
+      shell: "kill -USR1 $(pgrep -f 'snort') 2>/dev/null || true"
+      ignore_errors: yes
+    - name: Wait for Snort3 flush to complete
+      pause:
+        seconds: 5
+
     - name: Stop Snort3
       shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes
@@ -215,10 +220,10 @@
         dest: "/tmp/snort3_{{ scenario }}_result.json"
         flat: yes
 
-    - name: Fetch raw alert log (JSON format for timestamp parsing)
+    - name: Fetch fast.log (unbuffered, used for timestamp parsing)
       fetch:
-        src:  "/var/log/snort3/{{ scenario }}/alert_json.txt"
-        dest: "/tmp/snort3_{{ scenario }}_alerts.json"
+        src:  "/var/log/snort3/{{ scenario }}/alert_fast.txt"
+        dest: "/tmp/snort3_{{ scenario }}_fast.log"
         flat: yes
       ignore_errors: yes
 

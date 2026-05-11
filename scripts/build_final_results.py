@@ -41,14 +41,21 @@ def parse_timestamp(ts_str, year_hint=None):
 def load_alert_timestamps(alert_file, year_hint):
     if not os.path.exists(alert_file): return []
     timestamps = []
+    # Detect format: fast.log (Snort) vs JSON lines (Suricata)
+    is_fastlog = alert_file.endswith('_fast.log')
     with open(alert_file) as f:
         for line in f:
             line = line.strip()
             if not line: continue
             try:
-                obj = json.loads(line)
-                ts = obj.get("timestamp") or obj.get("time")
-                epoch = parse_timestamp(ts, year_hint)
+                if is_fastlog:
+                    # fast.log format: "05/10-09:14:15.163678  [**] ..."
+                    ts_str = line.split()[0]
+                    epoch = parse_timestamp(ts_str, year_hint)
+                else:
+                    obj = json.loads(line)
+                    ts = obj.get("timestamp") or obj.get("time")
+                    epoch = parse_timestamp(ts, year_hint)
                 if epoch: timestamps.append(epoch)
             except: pass
     return sorted(timestamps)
@@ -60,17 +67,24 @@ def load_start_times(start_file):
 
 def compute_metrics(timestamps, start_times, window):
     if not start_times: return 0.0, 0.0
+    # Clock skew tolerance: inter-VM NTP offset measured at ~700ms.
+    # Alerts timestamped by monitor VM may appear slightly before
+    # the start-time recorded on the attacker VM.
+    CLOCK_SKEW_TOLERANCE = 2.0  # seconds
     detected_iters = 0
     latencies = []
     for start in start_times:
         first_alert = None
         for t in timestamps:
-            if start <= t <= start + window:
+            if start - CLOCK_SKEW_TOLERANCE <= t <= start + window:
                 first_alert = t
                 break
         if first_alert is not None:
             detected_iters += 1
-            latencies.append((first_alert - start) * 1000.0)
+            # Clamp latency to 0 minimum: negative values indicate clock skew
+            # between attacker VM (start_time) and monitor VM (alert_time).
+            raw_lat = (first_alert - start) * 1000.0
+            latencies.append(max(0.0, raw_lat))
     dr = (detected_iters / len(start_times)) * 100.0 if start_times else 0.0
     avg_lat = sum(latencies) / len(latencies) if latencies else 0.0
     return round(dr, 1), round(avg_lat, 1)
@@ -103,7 +117,7 @@ def build_final(ids_type, prefix):
     current_year = datetime.now(timezone.utc).year
     normal_alerts = scenarios.get("SCN-005", {}).get("alerts", 0)
     for sc in scenarios:
-        alert_file = os.path.join(TMP_DIR, f"{prefix}_{sc}_alerts.json")
+        alert_file = os.path.join(TMP_DIR, f"{prefix}_{sc}_alerts.json" if prefix != "snort3" else f"{prefix}_{sc}_fast.log")
         start_file = os.path.join(TMP_DIR, f"{prefix}_attack_start_times_{sc}.txt")
         if sc == "SCN-005":
             scenarios[sc]["detection_rate"] = "N/A"
