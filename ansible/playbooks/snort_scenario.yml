@@ -1,137 +1,227 @@
 ---
-# ARCHIVIRT - Snort3 IDS Test Scenario Playbook (with attack timestamps + fetch)
-# Author: Yasnemanegre SAWADOGO (SPbGUPTD)
-# Usage: ansible-playbook snort_scenario.yml -e "scenario=SCN-001"
+# =============================================================================
+# ARCHIVIRT - Snort 3.12.2.0 IDS Test Scenario Playbook
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbSUT / SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 2.1.0 — 2026-05-11
+#
+# Description:
+#   Runs a single attack scenario against Snort 3.12.2.0 in passive IDS mode.
+#   Called by run_all_scenarios.yml for each of SCN-001 to SCN-005.
+#
+# Variables (passed by master playbook):
+#   scenario    : scenario ID, e.g. "SCN-001"  (default: SCN-001)
+#   ids_prefix  : IDS identifier prefix        (default: snort3)
+#
+# Usage (standalone):
+#   ansible-playbook snort_scenario.yml -i ansible/inventory/hosts.ini \
+#     -e "scenario=SCN-001 ids_prefix=snort3"
+#
+# IaC note:
+#   Attack start-time files are written as /tmp/{ids_prefix}_attack_start_times_{scenario}.txt
+#   to prevent Suricata runs from overwriting Snort timing data.
+# =============================================================================
 
-- name: ARCHIVIRT - Setup mirrors on localhost
+
+# -----------------------------------------------------------------------------
+# PLAY 1 — Configure traffic mirroring on localhost
+# -----------------------------------------------------------------------------
+
+- name: ARCHIVIRT - Setup traffic mirrors
   hosts: localhost
   connection: local
   gather_facts: no
+  vars:
+    scenario:   "{{ scenario   | default('SCN-001') }}"
+    ids_prefix: "{{ ids_prefix | default('snort3')  }}"
   tasks:
+
     - name: Run archivirt_mirrors.sh
       shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh 2>/dev/null
       register: mirrors
+
     - name: Show mirrors status
       debug:
         msg: "Mirrors: {{ mirrors.stdout_lines | default([]) | select('search', '✅') | list }}"
+
+
+# -----------------------------------------------------------------------------
+# PLAY 2 — Deploy and start Snort 3.12.2.0 on the monitor VM
+# -----------------------------------------------------------------------------
 
 - name: ARCHIVIRT - Start Snort3 on monitor
   hosts: monitor
   become: yes
   vars:
-    scenario: "{{ scenario | default('SCN-001') }}"
+    scenario:     "{{ scenario   | default('SCN-001') }}"
+    ids_prefix:   "{{ ids_prefix | default('snort3')  }}"
     snort_script: /opt/archivirt/scripts/run_snort.sh
   tasks:
+
     - name: Deploy run_snort.sh
       copy:
-        src: /home/archivirt/ARCHIVIRT/scripts/run_snort.sh
-        dest: /opt/archivirt/scripts/run_snort.sh
-        mode: 0755
-    - name: Stop previous Snort3
+        src:  /home/archivirt/ARCHIVIRT/scripts/run_snort.sh
+        dest: "{{ snort_script }}"
+        mode: "0755"
+
+    - name: Deploy Snort configuration (UTC timestamps enforced)
+      copy:
+        src:  /home/archivirt/ARCHIVIRT/configs/snort/snort.lua
+        dest: /etc/snort3/snort.lua
+
+    - name: Stop any previous Snort3 instance
       shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes
-    - name: Start Snort3
+
+    - name: Start Snort3 for scenario {{ scenario }}
       shell: "bash {{ snort_script }} start {{ scenario }}"
+
+
+# -----------------------------------------------------------------------------
+# PLAY 3 — Execute the attack scenario on the attacker VM
+#
+# Each task writes iteration start-times to a prefixed file so that
+# build_final_results.py can correlate alerts to the correct IDS engine.
+# File pattern: /tmp/{ids_prefix}_attack_start_times_{scenario}.txt
+# -----------------------------------------------------------------------------
 
 - name: ARCHIVIRT - Run attack scenario
   hosts: attacker
   become: yes
   vars:
-    scenario: "{{ scenario | default('SCN-001') }}"
+    scenario:   "{{ scenario   | default('SCN-001') }}"
+    ids_prefix: "{{ ids_prefix | default('snort3')  }}"
   tasks:
-    - name: SCN-001 Port Scan
+
+    # -- SCN-001 : Port Scan --------------------------------------------------
+    - name: "SCN-001 Port Scan (nmap SYN, ports 1-1024, 10 iterations)"
       shell: |
-        > /tmp/attack_start_times_SCN-001.txt
+        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
+        nmap -sL 10.0.2.11 10.0.2.12 10.0.2.13 > /dev/null 2>&1
         for i in $(seq 1 10); do
-          date -u +%s >> /tmp/attack_start_times_SCN-001.txt
-          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
+          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
+          nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
+            10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
           sleep 3
         done
       when: scenario == "SCN-001"
 
-    - name: SCN-002 SSH Brute-force
+    # -- SCN-002 : SSH Brute-force --------------------------------------------
+    - name: "SCN-002 SSH Brute-force (nmap port 22, 10 iterations)"
       shell: |
-        > /tmp/attack_start_times_SCN-002.txt
+        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
+        nmap -sL 10.0.2.11 10.0.2.12 10.0.2.13 > /dev/null 2>&1
         for i in $(seq 1 10); do
-          date -u +%s >> /tmp/attack_start_times_SCN-002.txt
-          nmap -sS -Pn -p 22 --min-rate 500 -T4 10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
+          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
+          nmap -sS -Pn -p 22 --min-rate 500 -T4 \
+            10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
           sleep 3
         done
       when: scenario == "SCN-002"
 
-    - name: SCN-003 SQL Injection
-      block:
-        - name: Get DVWA cookie
-          shell: COOKIE=$(curl -s -c - 'http://10.0.2.11/dvwa/login.php' --data 'username=admin&password=password&Login=Login' | grep PHPSESSID | awk '{print $NF}'); echo $COOKIE
-          register: dvwa_cookie
-        - name: Run sqlmap with timestamps
-          shell: |
-            > /tmp/attack_start_times_SCN-003.txt
-            for i in $(seq 1 10); do
-              date -u +%s >> /tmp/attack_start_times_SCN-003.txt
-              sqlmap -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
-                --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
-                --batch --level=1 --risk=1 --technique=B --output-dir=/tmp/sqlmap_$i 2>/dev/null
-              sleep 5
-            done
+    # -- SCN-003 : SQL Injection (DVWA) ---------------------------------------
+    - name: "SCN-003 SQL Injection — get DVWA session cookie"
+      shell: |
+        curl -s -c - 'http://10.0.2.11/dvwa/login.php' \
+          --data 'username=admin&password=password&Login=Login' \
+          | grep PHPSESSID | awk '{print $NF}'
+      register: dvwa_cookie
       when: scenario == "SCN-003"
 
-    - name: SCN-004 DDoS Slowloris
+    - name: "SCN-003 SQL Injection — run sqlmap (10 iterations)"
       shell: |
-        > /tmp/attack_start_times_SCN-004.txt
+        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-003.txt
+        sqlmap --list-tampers > /dev/null 2>&1
         for i in $(seq 1 10); do
-          date -u +%s >> /tmp/attack_start_times_SCN-004.txt
-          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py 10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null
+          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-003.txt
+          sqlmap \
+            -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
+            --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
+            --batch --level=1 --risk=1 --technique=B \
+            --output-dir=/tmp/sqlmap_$i 2>/dev/null
+          sleep 5
+        done
+      when: scenario == "SCN-003"
+
+    # -- SCN-004 : DDoS Slowloris ---------------------------------------------
+    - name: "SCN-004 DDoS Slowloris (150 sockets, 15 s, 10 iterations)"
+      shell: |
+        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-004.txt
+        for i in $(seq 1 10); do
+          timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py \
+            10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null &
+          SLPID=$!
+          sleep 0.5
+          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-004.txt
+          wait $SLPID
           sleep 5
         done
       when: scenario == "SCN-004"
 
-    - name: SCN-005 Normal Traffic
+    # -- SCN-005 : Normal traffic baseline (FPR reference) -------------------
+    - name: "SCN-005 Normal traffic baseline (HTTP GET, 10 iterations)"
       shell: |
-        > /tmp/attack_start_times_SCN-005.txt
+        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-005.txt
         for i in $(seq 1 10); do
-          date -u +%s >> /tmp/attack_start_times_SCN-005.txt
+          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-005.txt
           curl -s http://10.0.2.11/ > /dev/null
           curl -s http://10.0.2.12/ > /dev/null
           sleep 3
         done
       when: scenario == "SCN-005"
 
-    - name: Fetch attack start times to localhost
+    # -- Fetch prefixed start-time file to localhost -------------------------
+    - name: Fetch attack start-time file to localhost
       fetch:
-        src: "/tmp/attack_start_times_{{ scenario }}.txt"
-        dest: "/tmp/attack_start_times_{{ scenario }}.txt"
+        src:  "/tmp/{{ ids_prefix }}_attack_start_times_{{ scenario }}.txt"
+        dest: "/tmp/{{ ids_prefix }}_attack_start_times_{{ scenario }}.txt"
         flat: yes
       when: scenario is defined
+
+
+# -----------------------------------------------------------------------------
+# PLAY 4 — Stop Snort3 and collect results
+# -----------------------------------------------------------------------------
 
 - name: ARCHIVIRT - Stop Snort3 and collect results
   hosts: monitor
   become: yes
   vars:
-    scenario: "{{ scenario | default('SCN-001') }}"
+    scenario:     "{{ scenario   | default('SCN-001') }}"
+    ids_prefix:   "{{ ids_prefix | default('snort3')  }}"
     snort_script: /opt/archivirt/scripts/run_snort.sh
   tasks:
+
     - name: Stop Snort3
       shell: "bash {{ snort_script }} stop {{ scenario }}"
       ignore_errors: yes
+
     - name: Count alerts
-      shell: wc -l < /var/log/snort3/{{ scenario }}/alert_fast.txt
+      shell: "wc -l < /var/log/snort3/{{ scenario }}/alert_fast.txt"
       register: alert_count
-    - name: Save result to JSON
+
+    - name: Save per-scenario result to JSON
       copy:
-        content: "{\"scenario\":\"{{ scenario }}\",\"ids\":\"Snort 3.12.2.0\",\"alerts\":{{ alert_count.stdout | default(0) }},\"date\":\"{{ ansible_date_time.date }}\"}\n"
+        content: >
+          {"scenario":"{{ scenario }}","ids":"Snort 3.12.2.0",
+          "alerts":{{ alert_count.stdout | trim | default(0) }},
+          "date":"{{ ansible_date_time.date }}"}
         dest: "/tmp/snort3_{{ scenario }}_result.json"
-    - name: Fetch result to localhost
+
+    - name: Fetch per-scenario result to localhost
       fetch:
-        src: "/tmp/snort3_{{ scenario }}_result.json"
+        src:  "/tmp/snort3_{{ scenario }}_result.json"
         dest: "/tmp/snort3_{{ scenario }}_result.json"
         flat: yes
-    - name: Fetch raw alerts log
+
+    - name: Fetch raw alert log (JSON format for timestamp parsing)
       fetch:
-        src: "/var/log/snort3/{{ scenario }}/alert_json.txt"
+        src:  "/var/log/snort3/{{ scenario }}/alert_json.txt"
         dest: "/tmp/snort3_{{ scenario }}_alerts.json"
         flat: yes
       ignore_errors: yes
-    - name: Show result
+
+    - name: Show scenario result
       debug:
-        msg: "Snort3 {{ scenario }}: {{ alert_count.stdout }} alerts"
+        msg: "Snort3 {{ scenario }}: {{ alert_count.stdout | trim }} alerts"
