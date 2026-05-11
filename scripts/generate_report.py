@@ -53,6 +53,8 @@ def build_report():
 
     snort_sc = safe_get(snort, "scenarios", {})
     suricata_sc = safe_get(suricata, "scenarios", {})
+    snort_total = safe_get(snort, "total_alerts", 0)
+    suricata_total = safe_get(suricata, "total_alerts", 0)
 
     # Table 2 – Detection Efficiency
     table2 = {"title": "Table 2: Detection Efficiency Metrics (average over 10 runs)", "rows": []}
@@ -62,12 +64,14 @@ def build_report():
         row = {
             "scenario": SCENARIO_EN.get(sid, sid),
             "snort": {
+                "ids": safe_get(snort, "ids", "Snort"),
                 "alerts": safe_get(s, "alerts", 0),
                 "detection": safe_get(s, "detection_rate", "N/A"),
                 "fpr": safe_get(s, "false_positive", 0.0),
                 "latency": safe_get(s, "latency_ms", "N/A")
             },
             "suricata": {
+                "ids": safe_get(suricata, "ids", "Suricata"),
                 "alerts": safe_get(u, "alerts", 0),
                 "detection": safe_get(u, "detection_rate", "N/A"),
                 "fpr": safe_get(u, "false_positive", 0.0),
@@ -76,16 +80,18 @@ def build_report():
         }
         table2["rows"].append(row)
 
-    # Table 3 – System Performance
+    # Table 3 – System Performance (peak) with Total Alerts first
     table3 = {"title": "Table 3: System Performance Metrics (peak during tests)", "rows": []}
     snort_perf = {
-        "ids": "Snort",
+        "ids": safe_get(snort, "ids", "Snort"),
+        "total_alerts": snort_total,
         "cpu": perf.get("snort_cpu","N/A"),
         "ram": perf.get("snort_ram","N/A"),
         "mbit": perf.get("snort_throughput","N/A")
     }
     suricata_perf = {
-        "ids": "Suricata",
+        "ids": safe_get(suricata, "ids", "Suricata"),
+        "total_alerts": suricata_total,
         "cpu": perf.get("suricata_cpu","N/A"),
         "ram": perf.get("suricata_ram","N/A"),
         "mbit": perf.get("suricata_throughput","N/A")
@@ -119,30 +125,30 @@ def print_report(rep):
     # Table 2
     print("=" * 90)
     print(rep["table2"]["title"])
-    header = f"{'Scenario':<22} {'IDS':<12} {'Alerts':>7} {'Detect%':>8} {'FPR%':>7} {'Lat(ms)':>10}"
+    header = f"{'Scenario':<22} {'IDS':<20} {'Alerts':>7} {'Detect%':>8} {'FPR%':>7} {'Lat(ms)':>10}"
     print(header)
     print("-" * len(header))
     for row in rep["table2"]["rows"]:
         for ids_key in ["snort", "suricata"]:
             d = row[ids_key]
-            name = "Snort" if ids_key=="snort" else "Suricata"
+            name = d["ids"]
             det = f"{d['detection']:.1f}" if isinstance(d['detection'], (int,float)) else str(d['detection'])
             fpr = f"{d['fpr']:.2f}" if isinstance(d['fpr'], (int,float)) else str(d['fpr'])
             lat = f"{d['latency']:.1f}" if isinstance(d['latency'], (int,float)) else str(d['latency'])
-            print(f"{row['scenario']:<22} {name:<12} {d['alerts']:>7} {det:>8} {fpr:>7} {lat:>10}")
+            print(f"{row['scenario']:<22} {name:<20} {d['alerts']:>7} {det:>8} {fpr:>7} {lat:>10}")
         print()
 
     # Table 3
     print("=" * 70)
     print(rep["table3"]["title"])
-    header3 = f"{'IDS':<12} {'CPU%':>6} {'RAM MB':>7} {'Mbps':>7}"
+    header3 = f"{'IDS':<22} {'Total Alerts':>12} {'CPU%':>6} {'RAM MB':>7} {'Mbps':>7}"
     print(header3)
-    print("-" * 35)
+    print("-" * 60)
     for r in rep["table3"]["rows"]:
         cpu = f"{r['cpu']:.1f}" if isinstance(r['cpu'], (int,float)) else str(r['cpu'])
         ram = f"{r['ram']:.1f}" if isinstance(r['ram'], (int,float)) else str(r['ram'])
         mbit = f"{r['mbit']:.1f}" if isinstance(r['mbit'], (int,float)) else str(r['mbit'])
-        print(f"{r['ids']:<12} {cpu:>6} {ram:>7} {mbit:>7}")
+        print(f"{r['ids']:<22} {r['total_alerts']:>12} {cpu:>6} {ram:>7} {mbit:>7}")
 
     # Table 4
     print("\n" + "=" * 70)

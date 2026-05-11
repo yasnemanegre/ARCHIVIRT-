@@ -1,81 +1,91 @@
 {
   "title": "ARCHIVIRT - IDS Comparison Report",
-  "date": "2026-05-06",
+  "date": "2026-05-11",
   "table2": {
     "title": "Table 2: Detection Efficiency Metrics (average over 10 runs)",
     "rows": [
       {
         "scenario": "Port Scan",
         "snort": {
-          "alerts": 30604,
-          "detection": 0.0,
+          "ids": "Snort 3.12.2.0",
+          "alerts": 30757,
+          "detection": 90.0,
           "fpr": 0.0,
-          "latency": 0.0
+          "latency": 2414.2
         },
         "suricata": {
-          "alerts": 29895,
+          "ids": "Suricata 6.0.4",
+          "alerts": 26,
           "detection": 100.0,
-          "fpr": 0.32,
-          "latency": 460.9
+          "fpr": 0.67,
+          "latency": 2470.5
         }
       },
       {
         "scenario": "SSH Brute-force",
         "snort": {
+          "ids": "Snort 3.12.2.0",
           "alerts": 27,
-          "detection": 0.0,
+          "detection": 90.0,
           "fpr": 0.0,
-          "latency": 0.0
+          "latency": 2277.7
         },
         "suricata": {
-          "alerts": 119,
+          "ids": "Suricata 6.0.4",
+          "alerts": 30,
           "detection": 100.0,
-          "fpr": 0.32,
-          "latency": 647.6
+          "fpr": 0.67,
+          "latency": 3074.9
         }
       },
       {
         "scenario": "SQL Injection",
         "snort": {
+          "ids": "Snort 3.12.2.0",
           "alerts": 0,
           "detection": 0.0,
           "fpr": 0.0,
           "latency": 0.0
         },
         "suricata": {
-          "alerts": 1589,
+          "ids": "Suricata 6.0.4",
+          "alerts": 1150,
           "detection": 100.0,
-          "fpr": 0.32,
-          "latency": 537.6
+          "fpr": 0.67,
+          "latency": 13.4
         }
       },
       {
         "scenario": "DDoS Slowloris",
         "snort": {
-          "alerts": 2409,
-          "detection": 0.0,
+          "ids": "Snort 3.12.2.0",
+          "alerts": 2990,
+          "detection": 100.0,
           "fpr": 0.0,
-          "latency": 0.0
+          "latency": 13824.3
         },
         "suricata": {
-          "alerts": 6374,
+          "ids": "Suricata 6.0.4",
+          "alerts": 10909,
           "detection": 100.0,
-          "fpr": 0.32,
-          "latency": 293.8
+          "fpr": 0.67,
+          "latency": 947.4
         }
       },
       {
         "scenario": "Normal Traffic",
         "snort": {
+          "ids": "Snort 3.12.2.0",
           "alerts": 0,
           "detection": "N/A",
           "fpr": 0.0,
           "latency": "N/A"
         },
         "suricata": {
-          "alerts": 122,
+          "ids": "Suricata 6.0.4",
+          "alerts": 82,
           "detection": "N/A",
-          "fpr": 0.32,
+          "fpr": 0.67,
           "latency": "N/A"
         }
       }
@@ -85,13 +95,15 @@
     "title": "Table 3: System Performance Metrics (peak during tests)",
     "rows": [
       {
-        "ids": "Snort",
+        "ids": "Snort 3.12.2.0",
+        "total_alerts": 33774,
         "cpu": 1.6,
         "ram": 41,
         "mbit": 945
       },
       {
-        "ids": "Suricata",
+        "ids": "Suricata 6.0.4",
+        "total_alerts": 12197,
         "cpu": 7.7,
         "ram": 46,
         "mbit": 1120
@@ -105,13 +117,13 @@
         "ids": "Snort",
         "events": 3000,
         "clusters": 3,
-        "anomalies": 10,
-        "anomaly_rate": 0.33
+        "anomalies": 9,
+        "anomaly_rate": 0.3
       },
       {
         "ids": "Suricata",
         "events": 3000,
-        "clusters": 2,
+        "clusters": 0,
         "anomalies": 0,
         "anomaly_rate": 0.0
       }

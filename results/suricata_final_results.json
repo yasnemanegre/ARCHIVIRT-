@@ -1,39 +1,39 @@
 {
   "ids": "Suricata 6.0.4",
-  "date": "2026-05-06",
+  "date": "2026-05-11",
   "scenarios": {
     "SCN-001": {
-      "alerts": 29895,
+      "alerts": 26,
       "detection_rate": 100.0,
-      "latency_ms": 460.9,
-      "false_positive": 0.32
+      "latency_ms": 2470.5,
+      "false_positive": 0.67
     },
     "SCN-002": {
-      "alerts": 119,
+      "alerts": 30,
       "detection_rate": 100.0,
-      "latency_ms": 647.6,
-      "false_positive": 0.32
+      "latency_ms": 3074.9,
+      "false_positive": 0.67
     },
     "SCN-003": {
-      "alerts": 1589,
+      "alerts": 1150,
       "detection_rate": 100.0,
-      "latency_ms": 537.6,
-      "false_positive": 0.32
+      "latency_ms": 13.4,
+      "false_positive": 0.67
     },
     "SCN-004": {
-      "alerts": 6374,
+      "alerts": 10909,
       "detection_rate": 100.0,
-      "latency_ms": 293.8,
-      "false_positive": 0.32
+      "latency_ms": 947.4,
+      "false_positive": 0.67
     },
     "SCN-005": {
-      "alerts": 122,
+      "alerts": 82,
       "detection_rate": "N/A",
       "latency_ms": "N/A",
-      "false_positive": 0.32
+      "false_positive": 0.67
     }
   },
-  "total_alerts": 423048,
+  "total_alerts": 12197,
   "performance": {
     "latency_ms": 0.834,
     "snort_cpu": 1.6,
