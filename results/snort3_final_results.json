@@ -3,15 +3,15 @@
   "date": "2026-05-11",
   "scenarios": {
     "SCN-001": {
-      "alerts": 30757,
-      "detection_rate": 90.0,
-      "latency_ms": 2414.2,
+      "alerts": 30562,
+      "detection_rate": 100.0,
+      "latency_ms": 0.0,
       "false_positive": 0.0
     },
     "SCN-002": {
       "alerts": 27,
-      "detection_rate": 90.0,
-      "latency_ms": 2277.7,
+      "detection_rate": 100.0,
+      "latency_ms": 427.2,
       "false_positive": 0.0
     },
     "SCN-003": {
@@ -21,9 +21,9 @@
       "false_positive": 0.0
     },
     "SCN-004": {
-      "alerts": 2990,
+      "alerts": 2664,
       "detection_rate": 100.0,
-      "latency_ms": 13824.3,
+      "latency_ms": 12839.9,
       "false_positive": 0.0
     },
     "SCN-005": {
@@ -33,7 +33,7 @@
       "false_positive": 0.0
     }
   },
-  "total_alerts": 33774,
+  "total_alerts": 33253,
   "performance": {
     "latency_ms": 0.834,
     "snort_cpu": 1.6,
