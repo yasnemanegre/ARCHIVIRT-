@@ -69,7 +69,7 @@ snort_result = run_dbscan(events_snort, "Snort")
 
 # Suricata
 events_suricata = []
-for f in sorted(glob.glob('/tmp/suricata_SCN-*_eve.json')):
+for f in sorted(glob.glob('/tmp/suricata_SCN-*_alerts.json')):
     with open(f) as fh:
         for line in fh:
             try:
