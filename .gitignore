@@ -49,3 +49,8 @@ ansible/*.retry
 suricata_eve_*.json
 packages/
 *.bak.*
+
+# Terraform state — environment-specific, never commit
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform/
