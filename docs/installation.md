@@ -1,7 +1,8 @@
 # ARCHIVIRT — Complete Installation Guide
 
-> Server: `archivirt@archivirt-lab` | IP: `192.168.4.11`  
-> Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+> **Server:** `archivirt@archivirt-lab` | IP: `192.168.4.11`
+> **Author:** Yasnemanegre SAWADOGO (PhD Candidate, SPbSUT)
+> **License:** MIT — https://github.com/yasnemanegre/ARCHIVIRT
 
 ---
 
@@ -15,33 +16,29 @@
 6. [Clone Repository](#6-clone-repository)
 7. [Network Configuration](#7-network-configuration)
 8. [Deploy Infrastructure](#8-deploy-infrastructure)
-9. [Configure IDS/IPS](#9-configure-idsips)
-10. [Run Tests](#10-run-tests)
-11. [View Reports & Grafana](#11-view-reports--grafana)
+9. [Configure All VMs](#9-configure-all-vms)
+10. [Run the Evaluation Campaign](#10-run-the-evaluation-campaign)
+11. [View Reports](#11-view-reports)
 12. [Troubleshooting](#12-troubleshooting)
 
 ---
 
 ## 1. Host Prerequisites
 
-The ARCHIVIRT framework runs on an Ubuntu Server 22.04 LTS host.
+ARCHIVIRT requires an Ubuntu Server 22.04 LTS host with hardware virtualisation.
 
 ```bash
-# Connect to host server
-ssh archivirt@192.168.4.11
-
 # Verify Ubuntu version
 lsb_release -a
 # Expected: Ubuntu 22.04.x LTS
 
-# Check hardware virtualization support
+# Check hardware virtualisation support (must be > 0)
 egrep -c '(vmx|svm)' /proc/cpuinfo
-# Must be > 0
 
-# Check CPU cores and RAM
-nproc
-free -h
-# Recommended: 16+ cores, 64 GB RAM (article reference: Dell Xeon 16c, 64GB NVMe)
+# Check resources
+nproc && free -h
+# Recommended: 16+ cores, 64 GB RAM, NVMe SSD
+# Reference hardware: Dell server, Intel Xeon E5-2690 v4, 16c, 64 GB, NVMe
 ```
 
 ---
@@ -49,31 +46,30 @@ free -h
 ## 2. KVM/Libvirt Setup
 
 ```bash
-# Install KVM and Libvirt
 sudo apt update && sudo apt install -y \
     qemu-kvm \
     libvirt-daemon-system \
     libvirt-clients \
     bridge-utils \
-    virt-manager \
     virtinst \
     cpu-checker \
     genisoimage \
-    cloud-image-utils
+    cloud-image-utils \
+    nftables \
+    ebtables
 
-# Verify KVM installation
+# Verify KVM
 sudo kvm-ok
 # Expected: INFO: /dev/kvm exists — KVM acceleration can be used
 
-# Add user to libvirt and kvm groups
-sudo usermod -aG libvirt archivirt
-sudo usermod -aG kvm archivirt
+# Add user to groups
+sudo usermod -aG libvirt,kvm archivirt
 
-# Restart libvirt
+# Enable and start libvirt
 sudo systemctl enable --now libvirtd
 sudo systemctl status libvirtd
 
-# Verify libvirt is running
+# Verify
 virsh list --all
 ```
 
@@ -83,20 +79,18 @@ virsh list --all
 
 ```bash
 # Install Terraform v1.5+
-wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+wget -O- https://apt.releases.hashicorp.com/gpg | \
+    sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
   https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
   sudo tee /etc/apt/sources.list.d/hashicorp.list
 
-sudo apt update && sudo apt install -y terraform
+sudo apt update && sudo apt install -y terraform libvirt-dev
 
 # Verify
 terraform --version
 # Expected: Terraform v1.5.x or higher
-
-# Install terraform-provider-libvirt dependencies
-sudo apt install -y libvirt-dev
 ```
 
 ---
@@ -104,16 +98,16 @@ sudo apt install -y libvirt-dev
 ## 4. Ansible Installation
 
 ```bash
-# Install Ansible
+# Install Ansible v2.16+
 sudo apt install -y software-properties-common
 sudo add-apt-repository --yes --update ppa:ansible/ansible
 sudo apt install -y ansible
 
 # Verify
 ansible --version
-# Expected: ansible [core 2.14+]
+# Expected: ansible [core 2.16+]
 
-# Install required Ansible collections
+# Required collections
 ansible-galaxy collection install community.general
 ansible-galaxy collection install ansible.posix
 ```
@@ -123,29 +117,20 @@ ansible-galaxy collection install ansible.posix
 ## 5. Python Dependencies
 
 ```bash
-# Install Python 3 and pip
-sudo apt install -y python3 python3-pip python3-venv
+sudo apt install -y python3 python3-pip
 
-# Create virtual environment for ARCHIVIRT
-python3 -m venv /home/archivirt/archivirt-env
-source /home/archivirt/archivirt-env/bin/activate
-
-# Install Python libraries
-pip install \
+# Install required libraries
+pip3 install \
+    numpy \
+    scikit-learn \
+    python-dateutil \
     pandas \
-    matplotlib \
-    seaborn \
-    jinja2 \
-    paramiko \
-    pytest \
-    requests \
     PyYAML \
-    rich \
-    tabulate \
-    numpy
+    pytest \
+    paramiko
 
-# Verify installation
-python3 -c "import pandas, matplotlib, jinja2, paramiko; print('All OK')"
+# Verify
+python3 -c "import sklearn, dateutil, numpy, pandas; print('All OK')"
 ```
 
 ---
@@ -153,38 +138,37 @@ python3 -c "import pandas, matplotlib, jinja2, paramiko; print('All OK')"
 ## 6. Clone Repository
 
 ```bash
-# Install git
 sudo apt install -y git
 
-# Clone ARCHIVIRT
 cd /home/archivirt
 git clone https://github.com/yasnemanegre/ARCHIVIRT.git
 cd ARCHIVIRT
 
 # Set execute permissions
-chmod +x scripts/*.sh
-chmod +x scripts/*.py
+chmod +x scripts/*.sh scripts/*.py
 ```
 
 ---
 
 ## 7. Network Configuration
 
-ARCHIVIRT uses four isolated virtual networks on the KVM host.
+ARCHIVIRT uses four isolated KVM virtual networks — no external routing.
 
 ```bash
-# Verify host interface
-ip addr show enp0s3
-# Expected: inet 192.168.4.11/...
+# Networks created automatically by Terraform:
+#   archivirt-targets  → 10.0.2.0/24  (Target VMs)
+#   archivirt-monitor  → 10.0.3.0/24  (IDS Monitor)
+#   archivirt-attack   → 10.0.4.0/24  (Attacker)
+#   archivirt-manager  → 10.0.5.0/24  (Manager)
 
-# Networks will be created by Terraform:
-#   archivirt-targets   → 10.0.2.0/24  (Target VMs)
-#   archivirt-monitor   → 10.0.3.0/24  (IDS/IPS Monitoring)
-#   archivirt-attack    → 10.0.4.0/24  (Attacker + Manager)
-
-# Verify no conflicts with existing networks
+# Verify no IP conflicts
 ip route show
 virsh net-list --all
+
+# Network isolation is enforced automatically by:
+#   - nftables: blocks forwarding outside libvirt network (192.168.100.0/24)
+#   - ebtables: restricts ARP traffic per subnet
+#   - libvirt isolated="yes": no physical interface bridging
 ```
 
 ---
@@ -192,114 +176,102 @@ virsh net-list --all
 ## 8. Deploy Infrastructure
 
 ```bash
-cd /home/archivirt/ARCHIVIRT
+cd /home/archivirt/ARCHIVIRT/terraform
 
-# Initialize Terraform
-cd terraform/
+# Initialise provider
 terraform init
 
-# Plan deployment (review what will be created)
+# Review plan
 terraform plan -var-file=../configs/lab.tfvars
 
-# Apply — creates all VMs and networks (~10 min)
+# Deploy all VMs and networks (~10 min)
 terraform apply -var-file=../configs/lab.tfvars -auto-approve
 
-# Verify VMs are running
+# Verify all VMs are running
 virsh list --all
-# Expected:
-#  Id  Name                    State
-#  1   archivirt-manager       running
-#  2   archivirt-attacker      running
-#  3   archivirt-monitor-ids   running
-#  4   archivirt-target-01     running
-#  5   archivirt-target-02     running
-#  6   archivirt-target-03     running
+# Expected: 6 VMs running
+#   archivirt-manager, archivirt-attacker, archivirt-monitor-ids,
+#   archivirt-target-01, archivirt-target-02, archivirt-target-03
 
 cd ..
 ```
 
 ---
 
-## 9. Configure IDS/IPS
-
-After Terraform creates the VMs, Ansible configures all roles.
+## 9. Configure All VMs
 
 ```bash
-# Update inventory with actual IPs (auto-generated by Terraform)
-terraform -chdir=terraform output -json > /tmp/tf_outputs.json
-python3 scripts/generate_inventory.py
+# Run the full Ansible configuration (all roles)
+ansible-playbook ansible/site.yml \
+  -i ansible/inventory/hosts.ini \
+  --ssh-extra-args="-o StrictHostKeyChecking=no"
 
-# Run full Ansible configuration
-cd ansible/
+# This installs and configures:
+#   - Common base packages on all VMs
+#   - DVWA v1.10 + Apache 2.4.52 + PHP 7.4 on target-01
+#   - OpenSSH 8.9 (vulnerable config) on all targets
+#   - Samba 4.15.9 on target-03
+#   - Snort 3.12.2.0 + Suricata 6.0.4 on monitor VM
+#   - Attack tools (Nmap, sqlmap, Slowloris) on attacker VM
+#   - Telegraf metrics agent on manager VM
 
-# Configure all VMs (common base)
-ansible-playbook -i inventory/hosts.ini site.yml --tags common
-
-# Configure target VMs with vulnerable services
-ansible-playbook -i inventory/hosts.ini site.yml --tags targets
-
-# Deploy Snort 3 IDS on monitor VM
-ansible-playbook -i inventory/hosts.ini site.yml --tags ids_snort
-
-# OR deploy Suricata 6 (mutually exclusive with Snort)
-# ansible-playbook -i inventory/hosts.ini site.yml --tags ids_suricata
-
-# Configure attacker VM
-ansible-playbook -i inventory/hosts.ini site.yml --tags attacker
-
-# Configure manager VM
-ansible-playbook -i inventory/hosts.ini site.yml --tags manager
-
-cd ..
+# Deploy Telegraf for CPU/RAM monitoring
+ansible-playbook ansible/playbooks/deploy_telegraf.yml \
+  -i ansible/inventory/hosts.ini
 ```
 
 ---
 
-## 10. Run Tests
+## 10. Run the Evaluation Campaign
 
 ```bash
-# Activate Python virtual environment
-source /home/archivirt/archivirt-env/bin/activate
-
-# Run deployment validation tests first
+# Run deployment validation tests
 pytest tests/test_deployment.py -v
 pytest tests/test_connectivity.py -v
 
-# Execute all 5 security test scenarios
-./scripts/run_tests.sh
+# Execute the full campaign:
+# 5 attack scenarios × 10 iterations × 2 IDS engines
+ansible-playbook ansible/playbooks/run_all_scenarios.yml \
+  -i ansible/inventory/hosts.ini \
+  --ssh-extra-args="-o StrictHostKeyChecking=no"
 
-# Expected output:
-# [1/5] Port Scan (Nmap)         ... DONE (12 sec)
-# [2/5] SSH Brute-force (Hydra)  ... DONE (45 sec)
-# [3/5] SQLi Exploit (sqlmap)    ... DONE (102 sec)
-# [4/5] Slowloris DDoS           ... DONE (210 sec)
-# [5/5] Normal Traffic Baseline  ... DONE (30 sec)
-# All scenarios completed. Logs saved to: logs/run_YYYYMMDD_HHMMSS/
+# The pipeline runs automatically:
+#   SCN-001  Port Scan (Nmap -sS, ports 1-1024)
+#   SCN-002  SSH Brute-force (Nmap port 22)
+#   SCN-003  SQL Injection (sqlmap against DVWA v1.10)
+#   SCN-004  DDoS Slowloris (150 sockets, 15s)
+#   SCN-005  Normal traffic baseline (curl HTTP GET)
+#
+# Then: build_final_results.py → dbscan_from_fetched.py → generate_report.py
+# Results written to: results/archivirt_final_comparison.json
 
-# Collect and aggregate metrics
-python3 scripts/collect_metrics.py --run-dir logs/latest/
-
-# Generate final HTML report
-python3 scripts/generate_report.py --output reports/report.html
+# Run a single scenario manually (optional)
+ansible-playbook ansible/playbooks/snort_scenario.yml \
+  -i ansible/inventory/hosts.ini \
+  -e "scenario=SCN-001 ids_prefix=snort3" \
+  --ssh-extra-args="-o StrictHostKeyChecking=no"
 ```
 
 ---
 
-## 11. View Reports & Grafana
+## 11. View Reports
 
 ```bash
-# Open the generated HTML report
-python3 -m http.server 8080 --directory reports/
-# Access: http://192.168.4.11:8080/report.html
+# Results are printed to terminal at end of campaign.
+# Full JSON report:
+cat results/archivirt_final_comparison.json | python3 -m json.tool
 
-# Start Grafana dashboard (if monitoring stack installed)
-sudo systemctl start telegraf influxdb grafana-server
+# Re-generate report from existing results
+python3 scripts/generate_report.py
 
-# Access Grafana: http://192.168.4.11:3000
-# Default credentials: admin / archivirt
+# Calibrate performance metrics (CPU/RAM/Mbps)
+ansible-playbook ansible/playbooks/calibrate_performance.yml \
+  -i ansible/inventory/hosts.ini
 
-# Import dashboard:
-# Settings → Dashboards → Import → Upload monitoring/grafana/dashboard.json
+# Grafana dashboard (optional)
+sudo systemctl start telegraf grafana-server
+# Access: http://192.168.4.11:3000 (admin / archivirt)
+# Import: monitoring/grafana/dashboard.json
 ```
 
 ---
@@ -307,6 +279,7 @@ sudo systemctl start telegraf influxdb grafana-server
 ## 12. Troubleshooting
 
 ### VM won't start
+
 ```bash
 sudo journalctl -u libvirtd -f
 virsh dominfo archivirt-target-01
@@ -314,45 +287,56 @@ virsh start archivirt-target-01 --console
 ```
 
 ### Terraform provider error
+
 ```bash
-# Re-initialize with upgrade
 terraform init -upgrade
 ```
 
 ### SSH connection refused from Ansible
+
 ```bash
-# Verify VM is running and get IP
+# Get VM IP
 virsh domifaddr archivirt-target-01
 
-# Test SSH manually
-ssh ubuntu@10.0.2.10 -i ~/.ssh/archivirt_key
+# Test manually
+ssh ubuntu@10.0.2.11 -i ~/.ssh/archivirt_key -o StrictHostKeyChecking=no
 
-# Regenerate SSH key pair if needed
+# Regenerate key if needed
 ssh-keygen -t ed25519 -f ~/.ssh/archivirt_key -N ""
 ```
 
 ### Snort/Suricata not detecting attacks
-```bash
-# Verify interface is in promiscuous mode on monitor VM
-ssh ubuntu@10.0.3.10
-sudo ip link set eth0 promisc on
-sudo ip link show eth0 | grep promisc
 
-# Restart IDS
-sudo systemctl restart snort3
-# OR
-sudo systemctl restart suricata
+```bash
+# Verify traffic mirroring is active
+bash scripts/archivirt_mirrors.sh
+# Expected: ✅ Mirror: vnetX -> vnet5 (for all vnets)
+
+# Check promiscuous mode on monitor VM
+ssh ubuntu@10.0.3.10
+sudo ip link show | grep promisc
 ```
 
 ### View IDS alerts in real-time
-```bash
-# Snort 3 alerts
-ssh ubuntu@10.0.3.10
-sudo tail -f /var/log/snort/alert_fast.txt
 
-# Suricata alerts
+```bash
+# Snort 3 (per scenario)
 ssh ubuntu@10.0.3.10
-sudo tail -f /var/log/suricata/fast.log
+sudo tail -f /var/log/snort3/SCN-001/alert_fast.txt
+
+# Suricata (per scenario)
+sudo tail -f /var/log/suricata/SCN-001/eve.json | python3 -m json.tool
+```
+
+### DR = 0% after campaign
+
+```bash
+# Check that prefixed start-time files were created
+ls /tmp/snort3_attack_start_times_*.txt
+ls /tmp/suricata_attack_start_times_*.txt
+
+# Run metrics manually
+python3 scripts/build_final_results.py
 ```
 
 ---
@@ -360,8 +344,11 @@ sudo tail -f /var/log/suricata/fast.log
 ## Full Teardown
 
 ```bash
-# Destroy all VMs and networks (WARNING: destructive)
-cd terraform/
+# Stop and destroy all VMs and networks
+ansible-playbook ansible/playbooks/teardown.yml \
+  -i ansible/inventory/hosts.ini
+
+cd terraform
 terraform destroy -var-file=../configs/lab.tfvars -auto-approve
 
 # Verify cleanup

@@ -77,6 +77,12 @@ Each iteration records a start-time with nanosecond precision (`date -u +%s.%N`)
 
 This eliminates tool startup overhead from latency measurements.
 
+> **Clock skew note:** an inter-VM NTP offset of ~800 ms between the attacker VM
+> (start-time source) and the monitor VM (alert-time source) causes some alert
+> timestamps to appear before the recorded start-time. `compute_metrics()` applies
+> a 2 s tolerance window and clamps latency to ≥ 0 ms. Both IDS engines are subject
+> to the same offset, so Snort/Suricata comparison remains valid.
+
 ---
 
 ## Calibrating Performance

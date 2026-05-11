@@ -99,6 +99,7 @@ both engines run sequentially in the same campaign.
 - The full campaign is launched with a single command: `ansible-playbook run_all_scenarios.yml`.
 - `terraform destroy/apply` between campaign runs guarantees clean-state isolation.
 - Reproducibility validated: σ < 2% across 10 runs for all metrics.
+- Inter-VM clock skew (~800 ms between attacker and monitor VMs) is documented and compensated by a 2 s tolerance window in `compute_metrics()` and latency clamping to ≥ 0 ms.
 
 ---
 
@@ -109,7 +110,7 @@ both engines run sequentially in the same campaign.
 | Alerts per scenario | `alert_fast.txt` / `fast.log` | Ansible `wc -l` |
 | Detection rate (DR%) | Alert timestamps vs. start-time files | `build_final_results.py` |
 | False-positive rate (FPR%) | Normal traffic alerts / total alerts | `build_final_results.py` |
-| Latency (ms) | First alert − attack start (`+%s.%N`) | `build_final_results.py` |
+| Latency (ms) | First alert − attack start (`+%s.%N`), clamped ≥ 0 (inter-VM clock skew ~800 ms) | `build_final_results.py` |
 | CPU / RAM peak | `top` + `/proc/meminfo` via Telegraf | `calibrate_performance.yml` |
 | Throughput (Mbps) | `performance_baseline.json` | `calibrate_performance.yml` |
 | DBSCAN clusters / anomalies | 3 000-alert sample | `dbscan_from_fetched.py` |
