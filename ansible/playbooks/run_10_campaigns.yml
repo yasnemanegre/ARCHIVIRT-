@@ -1,0 +1,111 @@
+# =============================================================================
+# ARCHIVIRT - 10 Full Campaigns for Statistical Validation (σ < 2%)
+# =============================================================================
+# Author  : Яснеманегре САВАДОГО (Аспирант СПбГУПТД)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 1.0.0 — 2026-05-12
+#
+# Description:
+#   Runs 10 complete campaigns with terraform destroy/apply between each
+#   to validate reproducibility (σ < 2%) as claimed in the article.
+#   Results are aggregated into results/sigma_analysis.json
+# =============================================================================
+
+- name: ARCHIVIRT - 10 Campaigns Statistical Validation
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    campaigns: 10
+    results_dir: "{{ playbook_dir }}/../../results/campaigns"
+    terraform_dir: "{{ playbook_dir }}/../../terraform"
+    inventory: "{{ playbook_dir }}/../inventory/hosts.ini"
+
+  tasks:
+
+    - name: Create results directory
+      file:
+        path: "{{ results_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Run campaign {{ item }} of {{ campaigns }}
+      block:
+
+        - name: "[C{{ item }}] terraform destroy"
+          shell: |
+            cd {{ terraform_dir }}
+            terraform destroy -auto-approve \
+              -var-file=../configs/lab.tfvars 2>&1
+          register: tf_destroy
+          ignore_errors: yes
+
+        - name: "[C{{ item }}] terraform apply"
+          shell: |
+            cd {{ terraform_dir }}
+            terraform apply -auto-approve \
+              -var-file=../configs/lab.tfvars 2>&1
+          register: tf_apply
+
+        - name: "[C{{ item }}] Wait for VMs to boot"
+          pause:
+            seconds: 60
+
+        - name: "[C{{ item }}] Configure all VMs (site.yml)"
+          shell: |
+            ansible-playbook ansible/site.yml \
+              -i {{ inventory }} \
+              --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
+          args:
+            chdir: "{{ playbook_dir }}/../../"
+
+        - name: "[C{{ item }}] NTP sync"
+          shell: |
+            ansible-playbook ansible/playbooks/setup_ntp.yml \
+              -i {{ inventory }} \
+              --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
+          args:
+            chdir: "{{ playbook_dir }}/../../"
+
+        - name: "[C{{ item }}] Apply mirrors"
+          shell: sudo bash scripts/archivirt_mirrors.sh
+          args:
+            chdir: "{{ playbook_dir }}/../../"
+
+        - name: "[C{{ item }}] Run all scenarios"
+          shell: |
+            ansible-playbook ansible/playbooks/run_all_scenarios.yml \
+              -i {{ inventory }} \
+              --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
+          args:
+            chdir: "{{ playbook_dir }}/../../"
+          register: campaign_output
+
+        - name: "[C{{ item }}] Save campaign results"
+          copy:
+            content: "{{ campaign_output.stdout }}"
+            dest: "{{ results_dir }}/campaign_{{ item }}_output.txt"
+
+        - name: "[C{{ item }}] Copy JSON results"
+          shell: |
+            cp results/archivirt_final_comparison.json \
+               {{ results_dir }}/campaign_{{ item }}_comparison.json
+          args:
+            chdir: "{{ playbook_dir }}/../../"
+
+      loop: "{{ range(1, campaigns|int + 1) | list }}"
+      loop_control:
+        label: "Campaign {{ item }}/{{ campaigns }}"
+
+    - name: Compute sigma across 10 campaigns
+      shell: |
+        python3 scripts/compute_sigma.py \
+          results/campaigns/ \
+          results/sigma_analysis.json
+      args:
+        chdir: "{{ playbook_dir }}/../../"
+      register: sigma_result
+
+    - name: Show sigma analysis
+      debug:
+        msg: "{{ sigma_result.stdout_lines }}"
