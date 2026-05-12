@@ -152,7 +152,6 @@
 
       # Rules
       default-rule-path: /etc/suricata/rules
-      default-rule-path: /etc/suricata/rules
 
       rule-files:
         - tls-events.rules

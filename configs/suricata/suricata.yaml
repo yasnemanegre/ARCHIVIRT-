@@ -20,10 +20,18 @@ af-packet:
     disable-promisc: no
 
 # Rule management
-default-rule-path: /usr/share/suricata/rules
+default-rule-path: /etc/suricata/rules
 rule-files:
-  - suricata.rules
-  - local.rules
+  - tls-events.rules
+  - stream-events.rules
+  - decoder-events.rules
+  - smtp-events.rules
+  - http-events.rules
+  - http2-events.rules
+  - dns-events.rules
+  - smb-events.rules
+  - kerberos-events.rules
+  - archivirt-local.rules
 
 # Classification and reference configs
 classification-file: /etc/suricata/classification.config
