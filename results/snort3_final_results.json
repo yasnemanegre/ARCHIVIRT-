@@ -1,27 +1,27 @@
 {
   "ids": "Snort 3.12.2.0",
-  "date": "2026-05-11",
+  "date": "2026-05-12",
   "scenarios": {
     "SCN-001": {
-      "alerts": 30757,
+      "alerts": 30737,
       "detection_rate": 100.0,
-      "latency_ms": 0.0,
+      "latency_ms": 47.5,
       "false_positive": 0.12
     },
     "SCN-002": {
       "alerts": 27,
       "detection_rate": 100.0,
-      "latency_ms": 430.0,
+      "latency_ms": 557.0,
       "false_positive": 0.12
     },
     "SCN-003": {
-      "alerts": 4607,
+      "alerts": 4613,
       "detection_rate": 100.0,
-      "latency_ms": 0.0,
+      "latency_ms": 242.1,
       "false_positive": 0.12
     },
     "SCN-004": {
-      "alerts": 23146,
+      "alerts": 23571,
       "detection_rate": 100.0,
       "latency_ms": 0.0,
       "false_positive": 0.12
@@ -33,7 +33,7 @@
       "false_positive": 0.12
     }
   },
-  "total_alerts": 58607,
+  "total_alerts": 59018,
   "performance": {
     "latency_ms": 0.834,
     "snort_cpu": 1.6,
