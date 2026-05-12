@@ -1,0 +1,69 @@
+# ARCHIVIRT - Configure NTP on all VMs (host as internal NTP server)
+# Author: Яснеманегре САВАДОГО (СПбГУПТД)
+- name: ARCHIVIRT - Configure NTP clients on all VMs
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars:
+    # Gateway de chaque réseau = host = serveur NTP
+    ntp_servers:
+      monitor:  "10.0.3.1"
+      attacker: "10.0.4.1"
+      targets:  "10.0.2.1"
+      manager:  "10.0.5.1"
+
+  tasks:
+    - name: Copy chrony package (offline install)
+      copy:
+        src: "{{ playbook_dir }}/../files/chrony_4.2-2ubuntu2_amd64.deb"
+        dest: /tmp/chrony.deb
+        mode: '0644'
+
+    - name: Install chrony from local package
+      shell: |
+        systemctl stop systemd-timesyncd 2>/dev/null || true
+        systemctl disable systemd-timesyncd 2>/dev/null || true
+        dpkg --force-all --remove systemd-timesyncd 2>/dev/null || true
+        dpkg --force-all -i /tmp/chrony.deb && rm -f /tmp/chrony.deb
+      args:
+        creates: /usr/bin/chronyc
+
+    - name: Detect NTP server (gateway of current VM)
+      set_fact:
+        ntp_server: >-
+          {{ ntp_servers['monitor']  if inventory_hostname in groups['monitor']  else
+             ntp_servers['attacker'] if inventory_hostname in groups['attacker'] else
+             ntp_servers['targets']  if inventory_hostname in groups['targets']  else
+             ntp_servers['manager'] }}
+
+    - name: Deploy chrony config pointing to host
+      copy:
+        dest: /etc/chrony/chrony.conf
+        content: |
+          # ARCHIVIRT NTP — host as internal stratum 8 server
+          server {{ ntp_server }} iburst
+          makestep 1.0 3
+          rtcsync
+          logdir /var/log/chrony
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Restart and enable chrony
+      systemd:
+        name: chrony
+        state: restarted
+        enabled: yes
+
+    - name: Force immediate sync
+      command: chronyc makestep
+      changed_when: true
+
+    - name: Verify sync status
+      command: chronyc tracking
+      register: ntp_status
+      changed_when: false
+
+    - name: Show NTP offset
+      debug:
+        msg: "{{ inventory_hostname }}: {{ ntp_status.stdout_lines | select('search', 'offset|Stratum') | list }}"
