@@ -110,6 +110,26 @@
 # UEBA — DBSCAN behavioural anomaly analysis
 # -----------------------------------------------------------------------------
 
+
+- name: ARCHIVIRT - Fetch all logs to localhost (IaC fallback)
+  hosts: monitor
+  gather_facts: no
+  tasks:
+    - name: Fetch Snort fast.log for each scenario
+      fetch:
+        src: "/var/log/snort3/{{ item }}/alert_fast.txt"
+        dest: "/tmp/snort3_{{ item }}_fast.log"
+        flat: yes
+      loop: [SCN-001, SCN-002, SCN-003, SCN-004, SCN-005]
+      ignore_errors: yes
+
+    - name: Fetch Suricata eve.json for each scenario
+      fetch:
+        src: "/var/log/suricata/{{ item }}/eve.json"
+        dest: "/tmp/suricata_{{ item }}_alerts.json"
+        flat: yes
+      loop: [SCN-001, SCN-002, SCN-003, SCN-004, SCN-005]
+      ignore_errors: yes
 - name: ARCHIVIRT - Run DBSCAN/UEBA analysis
   hosts: localhost
   connection: local

@@ -152,9 +152,19 @@
 
       # Rules
       default-rule-path: /etc/suricata/rules
+      default-rule-path: /etc/suricata/rules
+
       rule-files:
+        - tls-events.rules
+        - stream-events.rules
+        - decoder-events.rules
+        - smtp-events.rules
+        - http-events.rules
+        - http2-events.rules
+        - dns-events.rules
+        - smb-events.rules
+        - kerberos-events.rules
         - archivirt-local.rules
-        - suricata.rules
 
       # Host table
       host-mode: auto
