@@ -1,96 +1,27 @@
-# =============================================================================
 # ARCHIVIRT - 10 Campaigns Statistical Validation (σ < 2%)
-# =============================================================================
-# Author  : Яснеманегре САВАДОГО (Аспирант СПбГУПТД)
-# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 1.1.0 — 2026-05-12
-#
+# Author: Яснеманегре САВАДОГО (Аспирант СПбГУПТД)
+# Version: 1.2.0 — 2026-05-12
 # Strategy: log reset between campaigns (no terraform destroy/apply)
-# Rationale: σ measures detection reproducibility, not infra deployment.
-#            Log purge + service restart ensures clean IDS state per run.
-# =============================================================================
 
 - name: ARCHIVIRT - 10 Campaigns Statistical Validation
   hosts: localhost
   connection: local
   gather_facts: no
-  vars:
-    campaigns:    10
-    results_dir:  "{{ playbook_dir }}/../../results/campaigns"
-    inventory:    "{{ playbook_dir }}/../inventory/hosts.ini"
 
   tasks:
 
     - name: Create results directory
       file:
-        path: "{{ results_dir }}"
+        path: "{{ playbook_dir }}/../../results/campaigns"
         state: directory
         mode: '0755'
 
-    - name: Run campaign {{ item }} of 10
-      block:
-
-        - name: "[C{{ item }}] Reset IDS logs on monitor VM"
-          shell: |
-            ansible {{ inventory }} monitor -i \
-              -m shell \
-              -a "sudo rm -rf /var/log/snort3/SCN-* \
-                             /var/log/suricata/SCN-* && \
-                  sudo pkill -9 snort 2>/dev/null || true && \
-                  sudo pkill -9 suricata 2>/dev/null || true && \
-                  echo CLEAN" \
-              --become \
-              --ssh-extra-args="-o StrictHostKeyChecking=no"
-          args:
-            chdir: "{{ playbook_dir }}/../../"
-
-        - name: "[C{{ item }}] Reset tmp files on localhost"
-          shell: rm -f /tmp/snort3_SCN-*.* /tmp/suricata_SCN-*.*
-          args:
-            chdir: "{{ playbook_dir }}/../../"
-
-        - name: "[C{{ item }}] Apply traffic mirrors"
-          shell: sudo bash scripts/archivirt_mirrors.sh
-          args:
-            chdir: "{{ playbook_dir }}/../../"
-
-        - name: "[C{{ item }}] Run all scenarios"
-          shell: |
-            ansible-playbook ansible/playbooks/run_all_scenarios.yml \
-              -i {{ inventory }} \
-              --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
-          args:
-            chdir: "{{ playbook_dir }}/../../"
-          register: campaign_output
-
-        - name: "[C{{ item }}] Save campaign output"
-          copy:
-            content: "{{ campaign_output.stdout }}"
-            dest: "{{ results_dir }}/campaign_{{ item }}_output.txt"
-
-        - name: "[C{{ item }}] Copy JSON results"
-          shell: |
-            cp results/archivirt_final_comparison.json \
-               {{ results_dir }}/campaign_{{ item }}_comparison.json
-          args:
-            chdir: "{{ playbook_dir }}/../../"
-
-        - name: "[C{{ item }}] Show summary"
-          shell: |
-            python3 scripts/generate_report.py 2>/dev/null | \
-              grep -E "Detect%|100\.|[0-9]+\.[0-9]" | head -10
-          args:
-            chdir: "{{ playbook_dir }}/../../"
-          register: summary
-          ignore_errors: yes
-
-        - name: "[C{{ item }}] Campaign summary"
-          debug:
-            msg: "Campaign {{ item }}/10 done:\n{{ summary.stdout }}"
-
+    - name: Run 10 campaigns sequentially
+      include_tasks: run_one_campaign.yml
       loop: "{{ range(1, 11) | list }}"
       loop_control:
-        label: "Campaign {{ item }}/10"
+        loop_var: campaign_id
+        label: "Campaign {{ campaign_id }}/10"
 
     - name: Compute sigma across 10 campaigns
       shell: |

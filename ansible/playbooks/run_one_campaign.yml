@@ -1,0 +1,54 @@
+# Tâches d'une campagne individuelle (inclus par run_10_campaigns.yml)
+
+- name: "[C{{ campaign_id }}] Reset IDS logs on monitor VM"
+  shell: |
+    ssh -i ~/.ssh/archivirt_key \
+      -o StrictHostKeyChecking=no ubuntu@10.0.3.10 \
+      "sudo rm -rf /var/log/snort3/SCN-* /var/log/suricata/SCN-* && \
+       sudo pkill -9 snort 2>/dev/null || true && \
+       sudo pkill -9 suricata 2>/dev/null || true && \
+       echo CLEAN"
+  args:
+    chdir: "{{ playbook_dir }}/../../"
+
+- name: "[C{{ campaign_id }}] Reset tmp files"
+  shell: rm -f /tmp/snort3_SCN-*.* /tmp/suricata_SCN-*.*
+
+- name: "[C{{ campaign_id }}] Apply traffic mirrors"
+  shell: sudo bash scripts/archivirt_mirrors.sh
+  args:
+    chdir: "{{ playbook_dir }}/../../"
+
+- name: "[C{{ campaign_id }}] Run all scenarios"
+  shell: |
+    ansible-playbook ansible/playbooks/run_all_scenarios.yml \
+      -i ansible/inventory/hosts.ini \
+      --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
+  args:
+    chdir: "{{ playbook_dir }}/../../"
+  register: campaign_output
+
+- name: "[C{{ campaign_id }}] Save campaign output"
+  copy:
+    content: "{{ campaign_output.stdout }}"
+    dest: "{{ playbook_dir }}/../../results/campaigns/campaign_{{ campaign_id }}_output.txt"
+
+- name: "[C{{ campaign_id }}] Copy JSON results"
+  shell: |
+    cp results/archivirt_final_comparison.json \
+       results/campaigns/campaign_{{ campaign_id }}_comparison.json
+  args:
+    chdir: "{{ playbook_dir }}/../../"
+
+- name: "[C{{ campaign_id }}] Show DR summary"
+  shell: |
+    python3 scripts/generate_report.py 2>/dev/null | \
+      grep -E "100\.0|Detect" | head -12
+  args:
+    chdir: "{{ playbook_dir }}/../../"
+  register: summary
+  ignore_errors: yes
+
+- name: "[C{{ campaign_id }}] Campaign {{ campaign_id }}/10 complete"
+  debug:
+    msg: "{{ summary.stdout_lines }}"
