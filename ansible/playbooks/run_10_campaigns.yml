@@ -1,14 +1,13 @@
 # =============================================================================
-# ARCHIVIRT - 10 Full Campaigns for Statistical Validation (σ < 2%)
+# ARCHIVIRT - 10 Campaigns Statistical Validation (σ < 2%)
 # =============================================================================
 # Author  : Яснеманегре САВАДОГО (Аспирант СПбГУПТД)
 # License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 1.0.0 — 2026-05-12
+# Version : 1.1.0 — 2026-05-12
 #
-# Description:
-#   Runs 10 complete campaigns with terraform destroy/apply between each
-#   to validate reproducibility (σ < 2%) as claimed in the article.
-#   Results are aggregated into results/sigma_analysis.json
+# Strategy: log reset between campaigns (no terraform destroy/apply)
+# Rationale: σ measures detection reproducibility, not infra deployment.
+#            Log purge + service restart ensures clean IDS state per run.
 # =============================================================================
 
 - name: ARCHIVIRT - 10 Campaigns Statistical Validation
@@ -16,10 +15,9 @@
   connection: local
   gather_facts: no
   vars:
-    campaigns: 10
-    results_dir: "{{ playbook_dir }}/../../results/campaigns"
-    terraform_dir: "{{ playbook_dir }}/../../terraform"
-    inventory: "{{ playbook_dir }}/../inventory/hosts.ini"
+    campaigns:    10
+    results_dir:  "{{ playbook_dir }}/../../results/campaigns"
+    inventory:    "{{ playbook_dir }}/../inventory/hosts.ini"
 
   tasks:
 
@@ -29,45 +27,29 @@
         state: directory
         mode: '0755'
 
-    - name: Run campaign {{ item }} of {{ campaigns }}
+    - name: Run campaign {{ item }} of 10
       block:
 
-        - name: "[C{{ item }}] terraform destroy"
+        - name: "[C{{ item }}] Reset IDS logs on monitor VM"
           shell: |
-            cd {{ terraform_dir }}
-            terraform destroy -auto-approve \
-              -var-file=../configs/lab.tfvars 2>&1
-          register: tf_destroy
-          ignore_errors: yes
-
-        - name: "[C{{ item }}] terraform apply"
-          shell: |
-            cd {{ terraform_dir }}
-            terraform apply -auto-approve \
-              -var-file=../configs/lab.tfvars 2>&1
-          register: tf_apply
-
-        - name: "[C{{ item }}] Wait for VMs to boot"
-          pause:
-            seconds: 60
-
-        - name: "[C{{ item }}] Configure all VMs (site.yml)"
-          shell: |
-            ansible-playbook ansible/site.yml \
-              -i {{ inventory }} \
-              --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
+            ansible {{ inventory }} monitor -i \
+              -m shell \
+              -a "sudo rm -rf /var/log/snort3/SCN-* \
+                             /var/log/suricata/SCN-* && \
+                  sudo pkill -9 snort 2>/dev/null || true && \
+                  sudo pkill -9 suricata 2>/dev/null || true && \
+                  echo CLEAN" \
+              --become \
+              --ssh-extra-args="-o StrictHostKeyChecking=no"
           args:
             chdir: "{{ playbook_dir }}/../../"
 
-        - name: "[C{{ item }}] NTP sync"
-          shell: |
-            ansible-playbook ansible/playbooks/setup_ntp.yml \
-              -i {{ inventory }} \
-              --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
+        - name: "[C{{ item }}] Reset tmp files on localhost"
+          shell: rm -f /tmp/snort3_SCN-*.* /tmp/suricata_SCN-*.*
           args:
             chdir: "{{ playbook_dir }}/../../"
 
-        - name: "[C{{ item }}] Apply mirrors"
+        - name: "[C{{ item }}] Apply traffic mirrors"
           shell: sudo bash scripts/archivirt_mirrors.sh
           args:
             chdir: "{{ playbook_dir }}/../../"
@@ -81,7 +63,7 @@
             chdir: "{{ playbook_dir }}/../../"
           register: campaign_output
 
-        - name: "[C{{ item }}] Save campaign results"
+        - name: "[C{{ item }}] Save campaign output"
           copy:
             content: "{{ campaign_output.stdout }}"
             dest: "{{ results_dir }}/campaign_{{ item }}_output.txt"
@@ -93,9 +75,22 @@
           args:
             chdir: "{{ playbook_dir }}/../../"
 
-      loop: "{{ range(1, campaigns|int + 1) | list }}"
+        - name: "[C{{ item }}] Show summary"
+          shell: |
+            python3 scripts/generate_report.py 2>/dev/null | \
+              grep -E "Detect%|100\.|[0-9]+\.[0-9]" | head -10
+          args:
+            chdir: "{{ playbook_dir }}/../../"
+          register: summary
+          ignore_errors: yes
+
+        - name: "[C{{ item }}] Campaign summary"
+          debug:
+            msg: "Campaign {{ item }}/10 done:\n{{ summary.stdout }}"
+
+      loop: "{{ range(1, 11) | list }}"
       loop_control:
-        label: "Campaign {{ item }}/{{ campaigns }}"
+        label: "Campaign {{ item }}/10"
 
     - name: Compute sigma across 10 campaigns
       shell: |
@@ -106,6 +101,6 @@
         chdir: "{{ playbook_dir }}/../../"
       register: sigma_result
 
-    - name: Show sigma analysis
+    - name: Final sigma report
       debug:
         msg: "{{ sigma_result.stdout_lines }}"
