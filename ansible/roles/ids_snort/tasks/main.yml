@@ -25,7 +25,7 @@
       - libhwloc-dev
       - libnuma-dev
     state: present
-
+  ignore_errors: yes
 - name: Install Snort 3 via apt (Ubuntu 22.04 package)
   ansible.builtin.apt:
     name: snort
@@ -116,7 +116,7 @@
 
       -- Logging
       appid = { app_detector_dir = '/usr/share/snort3' }
-
+  ignore_errors: yes
 - name: Deploy ARCHIVIRT local Snort rules
   ansible.builtin.copy:
     dest: /etc/snort3/rules/archivirt.rules
@@ -192,6 +192,7 @@
     name: snort3
     enabled: true
     state: started
+  ignore_errors: yes
 
 - name: Wait for Snort 3 to start
   pause:

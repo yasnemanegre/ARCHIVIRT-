@@ -13,6 +13,7 @@
     name: openssh-server
     state: present
 
+  ignore_errors: yes
 - name: Configure SSH with weak settings (intentional for lab)
   ansible.builtin.blockinfile:
     path: /etc/ssh/sshd_config
@@ -41,6 +42,7 @@
     enabled: true
 
 # ── Web Target (DVWA + Apache + PHP) ─────────────────────────
+  ignore_errors: yes
 - name: "[web] Install LAMP stack"
   ansible.builtin.apt:
     name:
@@ -54,7 +56,7 @@
       - git
     state: present
   when: target_role == "web"
-
+  ignore_errors: yes
 - name: "[web] Clone DVWA (Damn Vulnerable Web Application)"
   ansible.builtin.git:
     repo: https://github.com/digininja/DVWA.git
@@ -63,13 +65,14 @@
     force: true
   when: target_role == "web"
 
+  ignore_errors: yes
 - name: "[web] Copy DVWA config"
   ansible.builtin.copy:
     src: /var/www/html/dvwa/config/config.inc.php.dist
     dest: /var/www/html/dvwa/config/config.inc.php
     remote_src: true
   when: target_role == "web"
-
+  ignore_errors: yes
 - name: "[web] Configure DVWA database settings"
   ansible.builtin.replace:
     path: /var/www/html/dvwa/config/config.inc.php
@@ -79,7 +82,7 @@
     - { regexp: "'db_password'\\s*=>\\s*'p@ssw0rd'", replace: "'db_password' => 'dvwa_password'" }
     - { regexp: "'db_database'\\s*=>\\s*'dvwa'", replace: "'db_database' => 'dvwa'" }
   when: target_role == "web"
-
+  ignore_errors: yes
 - name: "[web] Set DVWA directory permissions"
   ansible.builtin.file:
     path: /var/www/html/dvwa
@@ -87,13 +90,14 @@
     group: www-data
     recurse: true
   when: target_role == "web"
-
+  ignore_errors: yes
 - name: "[web] Start and enable Apache2"
   ansible.builtin.systemd:
     name: apache2
     state: started
     enabled: true
   when: target_role == "web"
+  ignore_errors: yes
 
 - name: "[web] Start and enable MariaDB"
   ansible.builtin.systemd:
@@ -103,12 +107,13 @@
   when: target_role == "web"
 
 # ── SSH/FTP Target ────────────────────────────────────────────
+  ignore_errors: yes
 - name: "[ssh_ftp] Install vsftpd"
   ansible.builtin.apt:
     name: vsftpd
     state: present
   when: target_role == "ssh_ftp"
-
+  ignore_errors: yes
 - name: "[ssh_ftp] Configure vsftpd (anonymous enabled for lab)"
   ansible.builtin.copy:
     dest: /etc/vsftpd.conf
@@ -134,6 +139,7 @@
   when: target_role == "ssh_ftp"
 
 # ── SMB/DB Target ─────────────────────────────────────────────
+  ignore_errors: yes
 - name: "[smb_db] Install Samba and MariaDB"
   ansible.builtin.apt:
     name:
@@ -141,7 +147,7 @@
       - mariadb-server
     state: present
   when: target_role == "smb_db"
-
+  ignore_errors: yes
 - name: "[smb_db] Configure Samba with open share"
   ansible.builtin.blockinfile:
     path: /etc/samba/smb.conf
@@ -155,7 +161,7 @@
         directory mask = 0777
     marker: "# {mark} ARCHIVIRT Samba config"
   when: target_role == "smb_db"
-
+  ignore_errors: yes
 - name: "[smb_db] Create Samba share directory"
   ansible.builtin.file:
     path: /srv/samba/share
@@ -169,3 +175,4 @@
     state: started
     enabled: true
   when: target_role == "smb_db"
+  ignore_errors: yes

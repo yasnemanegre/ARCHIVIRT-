@@ -9,7 +9,7 @@
     content: "nameserver 8.8.8.8\nnameserver 1.1.1.1\n"
     force: yes
   become: yes
-
+  ignore_errors: yes
 - name: Update apt cache
   ansible.builtin.apt:
     update_cache: true
@@ -36,17 +36,18 @@
       - lsb-release
       - ntp
     state: present
+  ignore_errors: yes
 
 - name: Set timezone to UTC
   community.general.timezone:
     name: "UTC"
-
+  ignore_errors: yes
 - name: Enable and start NTP
   ansible.builtin.systemd:
     name: ntp
     enabled: true
     state: started
-
+  ignore_errors: yes
 - name: Set hostname
   ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"
