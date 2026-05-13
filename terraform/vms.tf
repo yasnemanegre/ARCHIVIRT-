@@ -28,8 +28,8 @@ locals {
         PKGS="openssh-server net-tools tcpdump curl wget vim htop iproute2 nftables ebtables chrony python3-pip python3-numpy python3-pandas python3-sklearn git"
         cd /opt/archivirt/packages
         for pkg in $PKGS; do
-          deb=$(curl -s $MIRROR/ | grep -o "href=\"[^\"]*${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href=')
-          [ -n "$deb" ] && wget -q "$MIRROR/$deb" -O ${pkg}.deb && dpkg -i ${pkg}.deb 2>/dev/null || true
+          deb=$(curl -s $$MIRROR/ | grep -o "href=\"[^\"]*$${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href=')
+          [ -n "$$deb" ] && wget -q "$$MIRROR/$$deb" -O $${pkg}.deb && dpkg -i $${pkg}.deb 2>/dev/null || true
         done
         apt-get install -f -y 2>/dev/null || true
   EOF
@@ -51,8 +51,8 @@ resource "libvirt_cloudinit_disk" "manager" {
         MIRROR="http://10.0.5.1:8080"
         cd /opt/archivirt/packages
         for pkg in influxdb2 grafana telegraf; do
-          deb=$(curl -s $MIRROR/ | grep -o "href=\"[^\"]*${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href=')
-          [ -n "$deb" ] && wget -q "$MIRROR/$deb" -O ${pkg}.deb && dpkg -i ${pkg}.deb 2>/dev/null || true
+          deb=$(curl -s $$MIRROR/ | grep -o "href=\"[^\"]*$${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href=')
+          [ -n "$$deb" ] && wget -q "$$MIRROR/$$deb" -O $${pkg}.deb && dpkg -i $${pkg}.deb 2>/dev/null || true
         done
         apt-get install -f -y 2>/dev/null || true
         systemctl enable influxdb grafana-server telegraf 2>/dev/null || true
@@ -116,7 +116,7 @@ resource "libvirt_cloudinit_disk" "attacker" {
     hostname: archivirt-attacker
     ${local.cloud_init_common}
     runcmd:
-      - MIRROR="http://10.0.4.1:8080" && cd /opt/archivirt/packages && for pkg in nmap sqlmap; do deb=$(curl -s $MIRROR/ | grep -o "href=\"[^\"]*${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href='); [ -n "$deb" ] && wget -q "$MIRROR/$deb" -O ${pkg}.deb && dpkg -i ${pkg}.deb 2>/dev/null || true; done
+      - MIRROR="http://10.0.4.1:8080" && cd /opt/archivirt/packages && for pkg in nmap sqlmap; do deb=$(curl -s $$MIRROR/ | grep -o "href=\"[^\"]*$${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href='); [ -n "$$deb" ] && wget -q "$$MIRROR/$$deb" -O $${pkg}.deb && dpkg -i $${pkg}.deb 2>/dev/null || true; done
   EOF
 
   network_config = <<-EOF
@@ -179,7 +179,7 @@ resource "libvirt_cloudinit_disk" "monitor" {
     hostname: archivirt-monitor-ids
     ${local.cloud_init_common}
     runcmd:
-      - MIRROR="http://10.0.3.1:8080" && cd /opt/archivirt/packages && for pkg in snort suricata; do deb=$(curl -s $MIRROR/ | grep -o "href=\"[^\"]*${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href='); [ -n "$deb" ] && wget -q "$MIRROR/$deb" -O ${pkg}.deb && dpkg -i ${pkg}.deb 2>/dev/null || true; done
+      - MIRROR="http://10.0.3.1:8080" && cd /opt/archivirt/packages && for pkg in snort suricata; do deb=$(curl -s $$MIRROR/ | grep -o "href=\"[^\"]*$${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href='); [ -n "$$deb" ] && wget -q "$$MIRROR/$$deb" -O $${pkg}.deb && dpkg -i $${pkg}.deb 2>/dev/null || true; done
   EOF
 
   network_config = <<-EOF
@@ -252,7 +252,7 @@ resource "libvirt_cloudinit_disk" "target" {
     hostname: ${each.value.hostname}
     ${local.cloud_init_common}
     runcmd:
-      - MIRROR="http://10.0.2.1:8080" && cd /opt/archivirt/packages && for pkg in apache2 php8.1 php8.1-mysql php8.1-gd libapache2-mod-php8.1 mariadb-server-10.6 samba vsftpd git; do deb=$(curl -s $MIRROR/ | grep -o "href=\"[^\"]*${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href='); [ -n "$deb" ] && wget -q "$MIRROR/$deb" -O ${pkg}.deb && dpkg -i ${pkg}.deb 2>/dev/null || true; done
+      - MIRROR="http://10.0.2.1:8080" && cd /opt/archivirt/packages && for pkg in apache2 php8.1 php8.1-mysql php8.1-gd libapache2-mod-php8.1 mariadb-server-10.6 samba vsftpd git; do deb=$(curl -s $$MIRROR/ | grep -o "href=\"[^\"]*$${pkg}[^\"]*\.deb\"" | head -1 | tr -d '\"href='); [ -n "$$deb" ] && wget -q "$$MIRROR/$$deb" -O $${pkg}.deb && dpkg -i $${pkg}.deb 2>/dev/null || true; done
   EOF
 
   network_config = <<-EOF
