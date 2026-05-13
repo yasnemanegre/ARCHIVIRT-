@@ -1,6 +1,6 @@
 #!/bin/bash
 # ARCHIVIRT - Auto-detect and apply tc mirrors (fully dynamic, no hardcoded bridges)
-# Author: Яснеманегре САВАДОГО (СПбГУТ)
+# Author: Яснеманегре САВАДОГО (СПбГУПТД)
 # Usage: sudo bash archivirt_mirrors.sh
 set -euo pipefail
 

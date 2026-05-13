@@ -39,6 +39,8 @@
 
     - name: Run archivirt_mirrors.sh
       shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
+      become: yes
+      ignore_errors: yes
       register: mirrors
 
     - name: Show mirrors status

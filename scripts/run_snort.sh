@@ -7,10 +7,10 @@ ACTION=$1
 SCENARIO=${2:-default}
 LOG_DIR=/var/log/snort3/${SCENARIO}
 PID_FILE=${LOG_DIR}/snort.pid
-CONFIG=/etc/snort3/snort.lua
+CONFIG=/etc/snort/snort.conf
 IFACE=ens4
 DAQ_DIR=/usr/local/lib/daq
-SNORT_BIN=/usr/local/bin/snort
+SNORT_BIN=/usr/sbin/snort
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 start|stop SCENARIO_NAME"
@@ -25,7 +25,7 @@ case $ACTION in
         truncate -s 0 "${LOG_DIR}/alert_fast.txt" 2>/dev/null || true
         truncate -s 0 "${LOG_DIR}/alert_json.txt" 2>/dev/null || true
         echo "[ARCHIVIRT] Starting Snort 3 on $IFACE for $SCENARIO ..."
-        ${SNORT_BIN} -i "$IFACE" -c "$CONFIG" -l "$LOG_DIR" --daq-dir "$DAQ_DIR" \
+        ${SNORT_BIN} -i "$IFACE" -c "$CONFIG" -l "$LOG_DIR" 
             > "${LOG_DIR}/snort_stdout.log" 2>&1 &
         SNORT_PID=$!
         echo $SNORT_PID > "$PID_FILE"

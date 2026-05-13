@@ -1,54 +1,46 @@
-# Tâches d'une campagne individuelle (inclus par run_10_campaigns.yml)
+# Tâches d'une campagne individuelle
 
-- name: "[C{{ campaign_id }}] Reset IDS logs on monitor VM"
+- name: "[C{{ campaign_id }}] Reset IDS logs"
   shell: |
-    ssh -i ~/.ssh/archivirt_key \
-      -o StrictHostKeyChecking=no ubuntu@10.0.3.10 \
-      "sudo rm -rf /var/log/snort3/SCN-* /var/log/suricata/SCN-* && \
-       sudo pkill -9 snort 2>/dev/null || true && \
-       sudo pkill -9 suricata 2>/dev/null || true && \
+    ssh -i /home/archivirt/.ssh/archivirt_key \
+      -o StrictHostKeyChecking=no \
+      -o BatchMode=yes \
+      ubuntu@10.0.3.10 \
+      "sudo rm -rf /var/log/snort3/SCN-* /var/log/suricata/SCN-*; \
+       sudo pkill -9 snort 2>/dev/null; \
+       sudo pkill -9 suricata 2>/dev/null; \
        echo CLEAN"
-  args:
-    chdir: "{{ playbook_dir }}/../../"
+  ignore_errors: yes
 
 - name: "[C{{ campaign_id }}] Reset tmp files"
   shell: rm -f /tmp/snort3_SCN-*.* /tmp/suricata_SCN-*.*
 
 - name: "[C{{ campaign_id }}] Apply traffic mirrors"
-  shell: sudo bash scripts/archivirt_mirrors.sh
-  args:
-    chdir: "{{ playbook_dir }}/../../"
+  shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
+  ignore_errors: yes
 
 - name: "[C{{ campaign_id }}] Run all scenarios"
   shell: |
+    cd /home/archivirt/ARCHIVIRT && \
     ansible-playbook ansible/playbooks/run_all_scenarios.yml \
       -i ansible/inventory/hosts.ini \
       --ssh-extra-args="-o StrictHostKeyChecking=no" 2>&1
-  args:
-    chdir: "{{ playbook_dir }}/../../"
   register: campaign_output
 
-- name: "[C{{ campaign_id }}] Save campaign output"
-  copy:
-    content: "{{ campaign_output.stdout }}"
-    dest: "{{ playbook_dir }}/../../results/campaigns/campaign_{{ campaign_id }}_output.txt"
-
-- name: "[C{{ campaign_id }}] Copy JSON results"
+- name: "[C{{ campaign_id }}] Save results"
   shell: |
-    cp results/archivirt_final_comparison.json \
-       results/campaigns/campaign_{{ campaign_id }}_comparison.json
-  args:
-    chdir: "{{ playbook_dir }}/../../"
+    cp /home/archivirt/ARCHIVIRT/results/archivirt_final_comparison.json \
+       /home/archivirt/ARCHIVIRT/results/campaigns/campaign_{{ campaign_id }}_comparison.json
+  ignore_errors: yes
 
-- name: "[C{{ campaign_id }}] Show DR summary"
+- name: "[C{{ campaign_id }}] DR summary"
   shell: |
+    cd /home/archivirt/ARCHIVIRT && \
     python3 scripts/generate_report.py 2>/dev/null | \
-      grep -E "100\.0|Detect" | head -12
-  args:
-    chdir: "{{ playbook_dir }}/../../"
+      grep -E "Detect%|100\." | head -10
   register: summary
   ignore_errors: yes
 
-- name: "[C{{ campaign_id }}] Campaign {{ campaign_id }}/10 complete"
+- name: "[C{{ campaign_id }}] Campaign {{ campaign_id }}/10 done"
   debug:
-    msg: "{{ summary.stdout_lines }}"
+    msg: "{{ summary.stdout_lines | default(['no output']) }}"
