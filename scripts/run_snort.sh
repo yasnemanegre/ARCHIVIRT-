@@ -7,10 +7,10 @@ ACTION=$1
 SCENARIO=${2:-default}
 LOG_DIR=/var/log/snort3/${SCENARIO}
 PID_FILE=${LOG_DIR}/snort.pid
-CONFIG=/etc/snort/snort.conf
+CONFIG=/etc/snort3/snort.lua
 IFACE=ens4
 DAQ_DIR=/usr/local/lib/daq
-SNORT_BIN=/usr/sbin/snort
+SNORT_BIN=/usr/local/bin/snort
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 start|stop SCENARIO_NAME"
