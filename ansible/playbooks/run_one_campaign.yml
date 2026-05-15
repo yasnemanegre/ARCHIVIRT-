@@ -12,6 +12,7 @@
 
 - name: "[C{{ campaign_id }}] Reset tmp files"
   shell: rm -f /tmp/snort3_SCN-*.* /tmp/suricata_SCN-*.*
+  become: yes
 
 - name: "[C{{ campaign_id }}] Apply traffic mirrors"
   shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
