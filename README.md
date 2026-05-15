@@ -211,7 +211,7 @@ attack_controller: caldera
 - Never hardcode `virbr` names — always use `virsh net-info`
 - Never use `ssh ubuntu@IP` in scripts — always use Ansible inventory
 - All source configs in `configs/` — never edit directly on VM
-- University: **СПбГУПТД** (not СПбГУТ)
+- University: **СПбГУПТД** (not СПбГУПТД)
 
 ---
 

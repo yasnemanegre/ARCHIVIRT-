@@ -206,4 +206,4 @@ sudo bash scripts/archivirt_mirrors.sh
 - Never SSH ubuntu@IP in scripts — always use Ansible
 - All source configs in `configs/` — never edit directly on VM
 - Author: **Yasnemanegre SAWADOGO (PhD Student, SPbGUPTD)**
-- University: **СПбГУПТД** (not СПбГУТ)
+- University: **СПбГУПТД** (not СПбГУПТД)
