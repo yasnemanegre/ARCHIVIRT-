@@ -54,3 +54,5 @@ packages/
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/.terraform/
+*.deb
+*.run
