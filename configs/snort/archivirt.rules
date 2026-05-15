@@ -1,0 +1,7 @@
+alert tcp any any -> 10.0.2.0/24 any (msg:"ARCHIVIRT TCP SYN Scan"; flags:S; detection_filter:track by_src, count 20, seconds 5; sid:2000001; rev:3;)
+alert tcp any any -> 10.0.2.0/24 22 (msg:"ARCHIVIRT SSH Brute-force"; flags:S; detection_filter:track by_src, count 3, seconds 30; sid:2000015; rev:1;)
+alert tcp any any -> 10.0.2.0/24 22 (msg:"ARCHIVIRT SSH Connection"; flags:S; sid:2000010; rev:3;)
+alert tcp any any -> 10.0.2.0/24 80 (msg:"ARCHIVIRT HTTP Connection"; flags:S; sid:2000020; rev:3;)
+alert tcp any any -> 10.0.2.0/24 80 (msg:"ARCHIVIRT Slowloris DDoS"; flags:S; detection_filter:track by_src, count 50, seconds 10; sid:2000030; rev:2;)
+alert http any any -> 10.0.2.0/24 any (msg:"ARCHIVIRT SQLi UNION"; http_uri; content:"%27"; sid:9000007; rev:1;)
+alert http any any -> 10.0.2.0/24 any (msg:"ARCHIVIRT SQLi AND"; http_uri; content:"%20AND%20"; sid:9000008; rev:1;)

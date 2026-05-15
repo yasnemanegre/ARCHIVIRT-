@@ -74,6 +74,11 @@
         src:  /home/archivirt/ARCHIVIRT/configs/suricata/suricata.yaml
         dest: /etc/suricata/suricata.yaml
 
+    - name: Re-apply traffic mirrors before Suricata start
+      shell: sudo bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
+      delegate_to: localhost
+      ignore_errors: yes
+
     - name: Stop any previous Suricata instance
       shell: "bash {{ suricata_script }} stop {{ scenario }}"
       ignore_errors: yes
