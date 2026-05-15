@@ -8,60 +8,60 @@
         "scenario": "Port Scan",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 125879,
+          "alerts": 92145,
           "detection": 100.0,
-          "fpr": 0.06,
-          "latency": 87.5
+          "fpr": 0.02,
+          "latency": 76.5
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 1588,
+          "alerts": 1592,
           "detection": 100.0,
           "fpr": 0.65,
-          "latency": 79.8
+          "latency": 79.3
         }
       },
       {
         "scenario": "SSH Brute-force",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 228,
+          "alerts": 114,
           "detection": 100.0,
-          "fpr": 0.06,
-          "latency": 78.9
+          "fpr": 0.02,
+          "latency": 73.8
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
           "alerts": 32,
           "detection": 100.0,
           "fpr": 0.65,
-          "latency": 74.9
+          "latency": 73.9
         }
       },
       {
         "scenario": "SQL Injection",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 76,
+          "alerts": 32,
           "detection": 100.0,
-          "fpr": 0.06,
-          "latency": 246.7
+          "fpr": 0.02,
+          "latency": 211.6
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 17,
+          "alerts": 14,
           "detection": 100.0,
           "fpr": 0.65,
-          "latency": 280.0
+          "latency": 239.2
         }
       },
       {
         "scenario": "DDoS Slowloris",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 4200,
+          "alerts": 7560,
           "detection": 100.0,
-          "fpr": 0.06,
+          "fpr": 0.02,
           "latency": 0.0
         },
         "suricata": {
@@ -76,9 +76,9 @@
         "scenario": "Normal Traffic",
         "snort": {
           "ids": "Snort 3.12.2.0",
-          "alerts": 80,
+          "alerts": 21,
           "detection": "N/A",
-          "fpr": 0.06,
+          "fpr": 0.02,
           "latency": "N/A"
         },
         "suricata": {
@@ -96,14 +96,14 @@
     "rows": [
       {
         "ids": "Snort 3.12.2.0",
-        "total_alerts": 130463,
+        "total_alerts": 99872,
         "cpu": 1.6,
         "ram": 41,
         "mbit": 945
       },
       {
         "ids": "Suricata 6.0.4",
-        "total_alerts": 3238,
+        "total_alerts": 3239,
         "cpu": 7.7,
         "ram": 46,
         "mbit": 1120

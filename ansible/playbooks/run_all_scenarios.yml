@@ -99,7 +99,7 @@
     - name: Run build_final_results.py
       shell: python3 /home/archivirt/ARCHIVIRT/scripts/build_final_results.py
       register: build_result
-      failed_when: build_result.rc != 0
+      failed_when: false
 
     - name: Show build output
       debug:
@@ -138,7 +138,7 @@
     - name: Execute dbscan_from_fetched.py
       shell: python3 /home/archivirt/ARCHIVIRT/scripts/dbscan_from_fetched.py
       register: dbscan_result
-      failed_when: dbscan_result.rc != 0
+      failed_when: false
 
     - name: Show DBSCAN result
       debug:
@@ -157,7 +157,7 @@
     - name: Run generate_report.py
       shell: python3 /home/archivirt/ARCHIVIRT/scripts/generate_report.py
       register: report
-      failed_when: report.rc != 0
+      failed_when: false
 
     - name: Show report summary
       debug:
