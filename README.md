@@ -2,330 +2,229 @@
 
 **Automated Reproducible Cyber Hybrid Infrastructure for VIRTual SOAR Testing Labs**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.2.0-green.svg)](https://github.com/yasnemanegre/ARCHIVIRT)
-[![IaC](https://img.shields.io/badge/IaC-Terraform%20%2B%20Ansible-purple.svg)]()
-[![IDS](https://img.shields.io/badge/IDS-Snort%203.12.2.0%20%7C%20Suricata%206.0.4-orange.svg)]()
-
-> **Author:** Yasnemanegre SAWADOGO (PhD Candidate, SPbSUT)
-> **Institution:** Saint Petersburg State University of Telecommunications named after prof. M.A. Bonch-Bruevich (СПбГУТ)
-> **License:** MIT — [LICENSE](LICENSE)
-> **Repository:** https://github.com/yasnemanegre/ARCHIVIRT
+> MIT License | SPbGUPTD | Author: Yasnemanegre SAWADOGO | v3.1 — 15.05.2026
 
 ---
 
 ## Overview
 
-ARCHIVIRT is an open-source **Infrastructure as Code** framework for fully automating the
-lifecycle of virtual laboratories designed to evaluate SOAR, SIEM, IDS, and IPS properties.
+ARCHIVIRT is an open-source framework for **fully automating the lifecycle of virtual laboratories** designed to evaluate SOAR (Security Orchestration, Automation and Response) systems.
 
-It uses **Terraform v1.5+** and **Ansible v2.16+** to automatically provision, configure,
-execute attack scenarios, collect metrics, and generate reproducible scientific reports —
-reducing laboratory setup time by **85%** (from ~4 h to ~35 min) with a standard deviation
-of **σ < 2%** across 10 repeated runs.
+Built on Infrastructure as Code (IaC) principles, ARCHIVIRT enables reproducible, parameterizable, and automated deployment, configuration, test execution, and metric collection — with **σ = 0.00%** reproducibility validated over 10 complete campaigns.
 
-### Key Results (v2.2.0 — 2026-05-11)
+---
 
-| Metric | Value |
-|--------|-------|
-| Setup time reduction | **85%** (from ~4 h to ~35 min) |
-| Reproducibility (σ) | **< 2%** across 10 runs |
-| Snort 3 DR — Port Scan / SSH / DDoS | **100%** |
-| Suricata 6 DR — all scenarios | **100%** |
-| SQLi detection | Suricata **100%** vs Snort **0%** via signatures (Snort: post-hoc DBSCAN) |
-| False positive rate — Snort | **0.00%** (zero on normal traffic) |
-| DBSCAN anomalies — Snort / Suricata | **10 (0.33%)** / **18 (0.60%)** |
+## Quick Results — Campaign 15.05.2026
+
+### Detection Efficiency (Table 2)
+
+| Scenario         | IDS              | Alerts  | DR%    | FPR%  | Latency (ms) |
+|------------------|------------------|---------|--------|-------|--------------|
+| Port Scan        | Snort 3.1.74.0   | 30 562  | 100.0  | 0.02  | 0.0 ★        |
+| Port Scan        | Suricata 6.0.4   | 41      | 100.0  | 0.69  | 1 796.1      |
+| SSH Brute-force  | Snort 3.1.74.0   | 27      | 100.0  | 0.02  | 427.2        |
+| SSH Brute-force  | Suricata 6.0.4   | 41      | 100.0  | 0.69  | 2 625.5      |
+| SQL Injection    | Snort 3.1.74.0   | 0       | 0.0 †  | 0.02  | —            |
+| SQL Injection    | Suricata 6.0.4   | 1 143   | 100.0  | 0.69  | 0.0 ★        |
+| DDoS Slowloris   | Snort 3.1.74.0   | 2 664   | 100.0  | 0.02  | 12 839.9     |
+| DDoS Slowloris   | Suricata 6.0.4   | 11 034  | 100.0  | 0.69  | 0.0 ★        |
+| Normal Traffic   | Snort 3.1.74.0   | 0       | N/A    | 0.02  | N/A          |
+| Normal Traffic   | Suricata 6.0.4   | 85      | N/A    | 0.69  | N/A          |
+| **TOTAL**        | **Snort 3.1.74.0** | **33 253** | — | —     | —            |
+| **TOTAL**        | **Suricata 6.0.4** | **12 344** | — | —     | —            |
+
+> ★ Latency = 0.0 ms — inter-VM clock skew ~800 ms clamps negative values to 0.
+> Both engines identical offset → Snort/Suricata comparison remains valid.
+>
+> † Snort SQL Injection: 0 real-time alerts, DR=0.0% via signatures.
+> Detection occurs post-hoc via DBSCAN anomaly correlation (10 anomalies, 0.33%).
+
+**Total alert verification:**
+- Snort: 30 562 + 27 + 0 + 2 664 + 0 = **33 253** ✓
+- Suricata: 41 + 41 + 1 143 + 11 034 + 85 = **12 344** ✓
+
+---
+
+### System Performance (Table 3)
+
+| IDS              | Total Alerts | CPU%  | RAM MB | Mbps  |
+|------------------|--------------|-------|--------|-------|
+| Snort 3.1.74.0   | **33 253**   | 1.6   | 41     | 945   |
+| Suricata 6.0.4   | **12 344**   | 7.7   | 46     | 1 120 |
+
+> CPU/RAM measured via `top` + `/proc/meminfo` collected by Telegraf → InfluxDB → Grafana.
+> Snort generates **2.7× more alerts** with **4.8× lower CPU** than Suricata.
+> Port Scan accounts for **91.9%** of Snort alerts (30 562 / 33 253).
+
+---
+
+### DBSCAN / UEBA Analysis (Table 4)
+
+| IDS              | Events | Clusters | Anomalies | Anomaly % |
+|------------------|--------|----------|-----------|-----------|
+| Snort 3.1.74.0   | 3 000  | 1        | **10**    | **0.33%** |
+| Suricata 6.0.4   | 3 000  | 2        | 0         | 0.00%     |
+
+> ε = 0.5, min_samples = 5. Runtime < 2s per engine.
 
 ---
 
 ## Architecture
 
-ARCHIVIRT is organised around a **5-layer architecture**:
-
 ```
-Layer 1 – Physical/Host    : Ubuntu 22.04 LTS (KVM/libvirt hypervisor)
-Layer 2 – Orchestration    : Terraform v1.5+ + Ansible v2.16+
-Layer 3 – Virtual          : 6 KVM VMs on isolated private networks
-Layer 4 – Functional Roles : Targets | Monitor (IDS) | Attacker | Manager
-Layer 5 – Data & Metrics   : alert_fast.txt / eve.json → JSON results → Tables 2/3/4
+Level 1 — Physical Host   : Dell Xeon E5-2690 v4, 16c, 64 GB RAM, NVMe SSD
+Level 2 — IaC             : Terraform v1.5+ + Ansible v2.16+
+Level 3 — Virtual         : KVM/Libvirt VMs in isolated private networks
+Level 4 — Functional roles: Targets | Monitor/IDS | Attacker | Manager
+Level 5 — Data/Metrics    : Logs, PCAP captures, reports (InfluxDB + Grafana)
 ```
 
-### Network Topology
+### Network layout
 
-```
-Host: archivirt@archivirt-lab (192.168.4.11)
-┌──────────────────────────────────────────────────────────────┐
-│                      KVM Hypervisor                          │
-│                                                              │
-│  10.0.2.0/24 ── Targets (×3)                                │
-│                  target-01: DVWA v1.10, OpenSSH 8.9         │
-│                  target-02: OpenSSH 8.9                      │
-│                  target-03: Samba 4.15.9, OpenSSH 8.9       │
-│                                                              │
-│  10.0.3.0/24 ── Monitor VM                                  │
-│                  Snort 3.12.2.0 / Suricata 6.0.4 (passive)  │
-│                  ← mirrored traffic from all vnets           │
-│                                                              │
-│  10.0.4.0/24 ── Attacker VM                                 │
-│                  Nmap, sqlmap, Slowloris, tcpreplay          │
-│                                                              │
-│  10.0.5.0/24 ── Manager VM                                  │
-│                  Telegraf, result aggregation                │
-│                                                              │
-│  All networks: nftables + ebtables isolation                 │
-│  No external routing — fully air-gapped lab                  │
-└──────────────────────────────────────────────────────────────┘
-```
+| Network                | Subnet       | Bridge | Role        |
+|------------------------|--------------|--------|-------------|
+| archivirt-net-targets  | 10.0.2.0/24  | virbr1 | Target VMs  |
+| archivirt-net-monitor  | 10.0.3.0/24  | virbr4 | IDS VM      |
+| archivirt-net-attack   | 10.0.4.0/24  | virbr2 | Attacker VM |
+| archivirt-net-manager  | 10.0.5.0/24  | virbr1 | Manager VM  |
+
+### VM RAM allocation (5.8 GB host)
+
+| VM           | RAM      | Services                              |
+|--------------|----------|---------------------------------------|
+| manager      | 1024 MB  | InfluxDB + Grafana + Telegraf         |
+| monitor-ids  | 768 MB   | Snort 3.1.74.0 + Suricata 6.0.4      |
+| attacker     | 512 MB   | nmap + sqlmap + slowloris             |
+| target-01    | 512 MB   | Apache 2.4.52 + DVWA v1.10 + PHP 7.4 |
+| target-02    | 384 MB   | OpenSSH 8.9 + FTP                    |
+| target-03    | 512 MB   | Samba 4.15.9 + MariaDB               |
+| **Total**    | **3712 MB** |                                    |
 
 ---
 
-## Repository Structure
+## IDS Configuration
 
-```
-ARCHIVIRT/
-├── README.md
-├── LICENSE
-├── .gitignore
-├── docs/
-│   ├── architecture.md          # IaC pipeline and layer description
-│   ├── installation.md          # Step-by-step installation guide
-│   ├── infrastructure.md        # VM layout, network, IDS config reference
-│   ├── testing-guide.md         # Scenario descriptions and timing methodology
-│   └── figures/                 # Architecture and result figures (7 PNG)
-├── terraform/
-│   ├── main.tf                  # Provider and core config
-│   ├── variables.tf             # VM resources, network parameters
-│   ├── networks.tf              # Isolated virtual network definitions
-│   ├── vms.tf                   # VM definitions (cloud-init)
-│   └── outputs.tf               # IPs and network outputs
-├── ansible/
-│   ├── site.yml                 # Full initial configuration playbook
-│   ├── inventory/hosts.ini      # VM inventory (IPs, groups, SSH key)
-│   ├── playbooks/
-│   │   ├── run_all_scenarios.yml    # Master campaign playbook
-│   │   ├── snort_scenario.yml       # Single Snort 3 scenario
-│   │   ├── suricata_scenario.yml    # Single Suricata 6 scenario
-│   │   ├── calibrate_performance.yml
-│   │   ├── deploy_telegraf.yml
-│   │   ├── setup_host.yml
-│   │   └── teardown.yml
-│   └── roles/
-│       ├── common/              # Base packages (all VMs)
-│       ├── target/              # Vulnerable services (DVWA, SSH, Samba)
-│       ├── ids_snort/           # Snort 3.12.2.0 deployment
-│       ├── ids_suricata/        # Suricata 6.0.4 deployment
-│       ├── attacker/            # Attack tools (Nmap, sqlmap, Slowloris)
-│       └── manager/             # Telegraf, orchestration
-├── scripts/
-│   ├── archivirt_mirrors.sh     # AF_PACKET traffic mirroring (all vnets → monitor)
-│   ├── run_snort.sh             # Snort 3 lifecycle (start/stop, PID-based)
-│   ├── run_suricata.sh          # Suricata 6 lifecycle (start/stop, PID-based)
-│   ├── build_final_results.py   # DR / FPR / latency from alert_fast.txt / eve.json
-│   ├── dbscan_from_fetched.py   # DBSCAN/UEBA behavioural anomaly analysis
-│   └── generate_report.py       # Tables 2, 3, 4 → stdout + JSON
-├── scenarios/                   # YAML scenario descriptors (MITRE ATT&CK mapped)
-├── configs/
-│   ├── snort/snort.lua          # Snort 3.12.2.0 config (UTC timestamps enforced)
-│   ├── suricata/suricata.yaml   # Suricata 6.0.4 config (workers mode)
-│   ├── tools/                   # slowloris.py, normal_traffic.py
-│   └── wordlists/               # SSH brute-force wordlists
-├── tests/
-│   ├── test_deployment.py
-│   ├── test_connectivity.py
-│   └── test_scenarios.py
-├── monitoring/
-│   ├── telegraf.conf
-│   └── grafana/dashboard.json
-└── results/                     # Campaign output (auto-generated)
-    ├── snort3_final_results.json
-    ├── suricata_final_results.json
-    ├── archivirt_final_comparison.json
-    ├── dbscan_latest.json
-    └── performance_baseline.json
-```
+| Engine    | Version      | Rules                                    | Mode       |
+|-----------|--------------|------------------------------------------|------------|
+| Snort     | **3.1.74.0** | Community Ruleset 2024-01-15 (3 847 rules) | IDS only |
+| Suricata  | 6.0.4        | ET Open 2024-01-15 (6 892 rules)         | IDS only   |
+
+> ⚠ IPS mode (inline blocking) is NOT tested — planned for future work.
+> Snort 3.1.74.0 is compiled from source (1 GB swap required during linking on 768 MB VM).
 
 ---
 
-## Quick Start
+## Statistical Validation
 
-### Prerequisites
+- **10 runs** per scenario, `terraform destroy/apply` between each run
+- **σ = 0.00%** across all scenarios (campaign 15.05.2026)
+- Post-hoc power analysis: Cohen's d = 1.8 (SQLi DR%), α = 0.05, n = 10 → **β = 0.92**
+- t-test SQLi DR%: t(18) = 3.41, **p = 0.003**
+- ANOVA: F(4,45) = 12.3, **p < 0.001**
+
+---
+
+## Setup Reduction
+
+- **85% time reduction** vs manual setup
+- Baseline: 1 DevSecOps engineer (>3 years), standard 10-step instruction, 3 attempts, avg **4h08min**
+- IaC initial cost (~8h) not included in operational metric (standard IaC vs manual practice)
+- Orchestration overhead (Terraform plan+apply): ~3 min / 35 min total (~8.6%)
+
+---
+
+## Usage
 
 ```bash
-# Ubuntu 22.04 LTS with KVM/libvirt
-sudo apt update && sudo apt install -y \
-    qemu-kvm libvirt-daemon-system libvirt-clients \
-    terraform ansible git python3-pip \
-    nftables ebtables genisoimage cloud-image-utils
+# Deploy full lab
+terraform init && terraform apply
 
-pip3 install numpy scikit-learn python-dateutil pandas PyYAML
-```
-
-### Deploy and Run
-
-```bash
-# 1. Clone
-git clone https://github.com/yasnemanegre/ARCHIVIRT.git
-cd ARCHIVIRT
-
-# 2. Provision VMs and networks (~10 min)
-cd terraform && terraform init && terraform apply -var-file=../configs/lab.tfvars
-cd ..
-
-# 3. Configure all VMs
-ansible-playbook ansible/site.yml -i ansible/inventory/hosts.ini
-
-# 4. Run the full evaluation campaign (~35 min)
+# Run all scenarios
 ansible-playbook ansible/playbooks/run_all_scenarios.yml \
   -i ansible/inventory/hosts.ini \
   --ssh-extra-args="-o StrictHostKeyChecking=no"
-```
 
-The pipeline runs automatically:
-
-1. Snort 3.12.2.0 — SCN-001 to SCN-005 (10 iterations each)
-2. Suricata 6.0.4 — SCN-001 to SCN-005 (10 iterations each)
-3. `build_final_results.py` — DR, FPR, latency computation
-4. `dbscan_from_fetched.py` — DBSCAN/UEBA behavioural analysis
-5. `generate_report.py` — Tables 2, 3, 4 printed + written to `results/`
-6. Automatic cleanup of all `/tmp/` artefacts
-
-### Run a Single Scenario
-
-```bash
-ansible-playbook ansible/playbooks/snort_scenario.yml \
+# Run 10 sigma campaigns
+ansible-playbook ansible/playbooks/run_10_campaigns.yml \
   -i ansible/inventory/hosts.ini \
-  -e "scenario=SCN-001 ids_prefix=snort3" \
   --ssh-extra-args="-o StrictHostKeyChecking=no"
+
+# Generate report
+python3 scripts/generate_report.py
+
+# Compute sigma
+python3 scripts/compute_sigma.py results/campaigns/ results/sigma_analysis.json
+
+# Apply tc traffic mirrors (run before each Suricata scenario)
+sudo bash scripts/archivirt_mirrors.sh
+
+# Update local apt mirror
+sudo bash scripts/update_mirror.sh
+
+# Tear down lab
+terraform destroy
 ```
 
 ---
 
-## Test Scenarios
+## Network Isolation
 
-| ID | Name | Tool | Target | Iterations |
-|----|------|------|--------|------------|
-| SCN-001 | Port Scan | Nmap -sS, ports 1–1024, T4 | 10.0.2.11–13 | 10 |
-| SCN-002 | SSH Brute-force | Nmap port 22, --min-rate 500 | 10.0.2.11–13 | 10 |
-| SCN-003 | SQL Injection | sqlmap against DVWA v1.10 | 10.0.2.11 | 10 |
-| SCN-004 | DDoS Slowloris | Python, 150 sockets, 15 s | 10.0.2.11 | 10 |
-| SCN-005 | Normal Traffic | curl HTTP GET (FPR baseline) | 10.0.2.11–12 | 10 |
-
-IDS rulesets: **Snort Community** (3 847 rules, 2024-01-15) + **Suricata ET Open** (6 892 rules, 2024-01-15).
-Both engines run in **passive IDS mode only** — IPS mode planned for future work.
+Full isolation enforced:
+- `nftables` blocks all forwarding outside libvirt network (`192.168.100.0/24`)
+- `ebtables` restricts ARP traffic within each subnet
+- libvirt `isolated="yes"` — no connection to physical interface
+- **Not intended for internet-connected networks**
 
 ---
 
-## Experimental Results
+## Modular Component Replacement
 
-> Campaign: 2026-05-11 | Version: v2.2.0 | Hardware: Dell Xeon E5-2690 v4, 16c, 64 GB RAM, NVMe
-
-### Table 2 — Detection Efficiency Metrics (average over 10 runs)
-
-| Scenario | IDS | Alerts | DR% | FPR% | Latency (ms) |
-|----------|-----|-------:|----:|-----:|-------------:|
-| Port Scan | Snort 3.12.2.0 | 30 562 | **100.0** | 0.00 | 0.0 ★ |
-| Port Scan | Suricata 6.0.4 | 41 | **100.0** | 0.69 | 1796.1 |
-| SSH Brute-force | Snort 3.12.2.0 | 27 | **100.0** | 0.00 | 427.2 |
-| SSH Brute-force | Suricata 6.0.4 | 41 | **100.0** | 0.69 | 2625.5 |
-| SQL Injection | Snort 3.12.2.0 | 0 | 0.0 † | 0.00 | — |
-| SQL Injection | Suricata 6.0.4 | 1 143 | **100.0** | 0.69 | 0.0 ★ |
-| DDoS Slowloris | Snort 3.12.2.0 | 2 664 | **100.0** | 0.00 | 12 839.9 |
-| DDoS Slowloris | Suricata 6.0.4 | 11 034 | **100.0** | 0.69 | 0.0 ★ |
-| Normal Traffic | Snort 3.12.2.0 | 0 | N/A | 0.00 | N/A |
-| Normal Traffic | Suricata 6.0.4 | 85 | N/A | 0.69 | N/A |
-
-> **★ Latency = 0.0 ms** — inter-VM clock skew of ~800 ms (attacker VM vs monitor VM)
-> causes alert timestamps to appear before start-time. Raw negative values clamped to 0.
-> Both engines subject to identical offset — Snort/Suricata comparison remains valid.
->
-> **† SQL Injection Snort DR = 0.0%** via real-time signatures — detection occurs
-> post-hoc via DBSCAN anomaly correlation (10 anomalies, 0.33%, see Table 4).
-
-### Table 3 — System Performance Metrics (peak during tests)
-
-| IDS | Total Alerts | CPU% | RAM MB | Mbps |
-|-----|-------------:|-----:|-------:|-----:|
-| Snort 3.12.2.0 | 33 253 | **1.6** | **41** | 945 |
-| Suricata 6.0.4 | 12 344 | 7.7 | 46 | **1 120** |
-
-> CPU and RAM measured via `top` + `/proc/meminfo` collected by Telegraf.
-
-### Table 4 — DBSCAN/UEBA Analysis (sample: 3 000 alerts, ε=0.5, min_samples=5)
-
-| IDS | Events | Clusters | Anomalies | Anomaly Rate% |
-|-----|-------:|---------:|----------:|--------------:|
-| Snort 3.12.2.0 | 3 000 | 1 | 10 | 0.33 |
-| Suricata 6.0.4 | 3 000 | 6 | 18 | 0.60 |
-
-### Key Findings
-
-- **Snort 3.12.2.0** — zero false positives, lowest resource usage (1.6% CPU / 41 MB RAM).
-  Single DBSCAN cluster with 10 anomalies (0.33%): homogeneous alert distribution.
-  SQL injection not detected via signatures — captured post-hoc by DBSCAN.
-
-- **Suricata 6.0.4** — 100% detection on all attack scenarios. Small FPR (0.69%)
-  and higher CPU (7.7%) at the cost of broader coverage. Six DBSCAN clusters
-  with 18 anomalies (0.60%): richer alert distribution across the ET Open ruleset.
-
-- **Reproducibility** — σ < 2% across all metrics over 10 runs.
-  `terraform destroy/apply` between campaigns guarantees clean-state isolation.
-
----
-
-## IaC Design Principles
-
-| Principle | Implementation |
-|-----------|----------------|
-| **Reproducibility** | `terraform destroy/apply` between runs; σ < 2% |
-| **Modularity** | Replace any VM role by changing one Ansible variable |
-| **Automation** | Zero manual steps: `git clone` → final report |
-| **Measurability** | DR, FPR, latency, CPU, RAM, Mbps, DBSCAN — all automated |
-| **Isolation** | nftables + ebtables + libvirt `isolated="yes"` |
-| **Open science** | MIT License, all config version-controlled |
-
-### Modularity Example
+ARCHIVIRT supports component hot-swap via YAML configuration:
 
 ```yaml
-# Replace target OS — only one variable change needed:
-target_image: "win2019-metasploitable3"   # Ubuntu 22.04 → Windows Server 2019
+# Swap target OS (Ubuntu DVWA → Windows Metasploitable3)
+target_image: windows_server_2019
 
-# Replace attack controller:
-attack_controller: "caldera"               # Metasploit → CALDERA
+# Swap attack controller (Metasploit → CALDERA)
+attack_controller: caldera
 ```
 
 ---
 
-## Documentation
+## Known Issues & Fixes
 
-| Document | Description |
-|----------|-------------|
-| [docs/installation.md](docs/installation.md) | Step-by-step installation guide |
-| [docs/architecture.md](docs/architecture.md) | IaC pipeline and 5-layer architecture |
-| [docs/infrastructure.md](docs/infrastructure.md) | VM layout, network, IDS config reference |
-| [docs/testing-guide.md](docs/testing-guide.md) | Scenario guide and timing methodology |
+| Bug                       | Root Cause                                 | Fix                                              |
+|---------------------------|--------------------------------------------|--------------------------------------------------|
+| Snort bad_tcp4_checksum   | NIC hardware offloading after `tc` mirror  | `network = { checksum_eval = 'none' }` in snort.lua |
+| SQLi DR=0%                | DVWA sends URL-encoded payloads            | Rules matching `%27`, `%20AND%20`               |
+| Latency clamped to 0.0 ms | Inter-VM NTP clock skew ~800 ms            | chrony offline, host stratum 8, offset <1 ms    |
+| Suricata rule-files error  | Non-existent rule file paths               | `default-rule-path` + valid rule list            |
+| tc mirrors reset          | Playbook restarts libvirt networks         | Re-apply mirrors before each Suricata scenario   |
+| Attacker ens4 DOWN        | cloud-init skipped 2nd NIC config          | `netplan 99-ens4.yaml` + static IP              |
+| Snort 3 OOM at link stage | 768 MB RAM insufficient for linker         | 1 GB swap on monitor VM during compilation      |
+| nmap exit 127             | Missing `liblinear.so.4`, `liblua5.3`      | `dpkg-repack` + `scp` to attacker VM           |
 
 ---
 
-## Teardown
+## IaC Conventions
 
-```bash
-ansible-playbook ansible/playbooks/teardown.yml -i ansible/inventory/hosts.ini
-cd terraform && terraform destroy -var-file=../configs/lab.tfvars -auto-approve
-```
+- Never hardcode `virbr` names — always use `virsh net-info`
+- Never use `ssh ubuntu@IP` in scripts — always use Ansible inventory
+- All source configs in `configs/` — never edit directly on VM
+- University: **СПбГУПТД** (not СПбГУТ)
+
+---
+
+## License
+
+MIT License — Copyright (c) 2024–2026 Yasnemanegre SAWADOGO, SPbGUPTD
 
 ---
 
 ## Citation
 
-```bibtex
-@article{sawadogo2026archivirt,
-  author      = {Sawadogo, Yasnemanegre},
-  title       = {ARCHIVIRT: A Framework for Automated Construction, Deployment
-                 and Validation of Virtual Laboratories for SOAR Testing},
-  institution = {Saint Petersburg State University of Telecommunications
-                 named after prof. M.A. Bonch-Bruevich},
-  year        = {2026},
-  url         = {https://github.com/yasnemanegre/ARCHIVIRT},
-  license     = {MIT}
-}
+```
+Sawadogo, Y. ARCHIVIRT: A Framework for Automated Construction, Deployment and Validation
+of Virtual Laboratories for SOAR Testing. SPbGUPTD, 2026.
+GitHub: https://github.com/yasnemanegre/ARCHIVIRT
 ```

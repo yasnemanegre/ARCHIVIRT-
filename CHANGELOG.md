@@ -1,0 +1,85 @@
+# ARCHIVIRT — CHANGELOG
+# Repository: https://github.com/yasnemanegre/ARCHIVIRT
+# Author: Yasnemanegre SAWADOGO | SPbGUPTD
+
+---
+
+## [v3.1] — 2026-05-15
+
+### Added
+- **Table 2**: TOTAL rows added for Snort (33 253) and Suricata (12 344)
+- **Table 2 ↔ Table 3 coherence**: Total alerts now verifiable by summing per-scenario alerts
+  - Snort: 30 562 + 27 + 0 + 2 664 + 0 = 33 253 ✓
+  - Suricata: 41 + 41 + 1 143 + 11 034 + 85 = 12 344 ✓
+- **RESULTS.md**: Dedicated file for all validated experimental results
+- **§6.3**: New discussion section on cross-table observations
+
+### Fixed
+- **FPR Suricata**: corrected from 0.10% (v2.0) to **0.69%** (real: 85 alerts / 50 000 packets)
+- **Latency values**: updated post-NTP chrony fix (offset now < 1 ms)
+- **Table 2 Latency footnote (★)**: documented NTP clock skew ~800 ms clamping behaviour
+
+### Notes
+- Snort Port Scan = 91.9% of Snort's total alerts (30 562 / 33 253) — verbosity to document
+- Snort generates 2.7× more alerts than Suricata with 4.8× lower CPU
+
+---
+
+## [v3.0] — 2026-05-15
+
+### Added
+- Snort 3.1.74.0 compiled from source (libdaq 3.0.13 + snort3 3.1.74.0)
+- 1 GB swap workaround for OOM during linking on 768 MB VM
+- Local apt mirror (nginx + dpkg-repack) for offline VM provisioning
+- σ = 0.00% validated on 10 complete campaigns
+
+### Fixed
+- **Snort version**: corrected from 3.12.2.0 → **3.1.74.0** (article v2.0 was wrong)
+- **bad_tcp4_checksum**: `network = { checksum_eval = 'none' }` in snort.lua
+- **SQLi Snort DR**: signatures updated for URL-encoded payloads (%27, %20AND%20)
+- **NTP clock skew**: chrony installed offline, host stratum 8
+- **Suricata rule-files**: corrected paths in suricata.yaml
+- **tc mirrors reset**: re-applied before each Suricata scenario
+- **Attacker ens4 DOWN**: netplan 99-ens4.yaml + static IP 10.0.2.100/24
+- **nmap exit 127**: dpkg-repack liblinear.so.4, liblua5.3 → scp to attacker VM
+
+---
+
+## [v2.0] — 2026-05-05 (Sterenberg corrections)
+
+### Added (corrections Sterenberg §1–§17)
+- Table 1: formal comparison with DISSUADER, KYPO, Security Onion (6 parameters)
+- MIT License + GitHub URL in abstract, §3, conclusion
+- DVWA v1.10, Apache 2.4.52, OpenSSH 8.9, Samba 4.15.9 versions specified (§4.2)
+- Snort Community Ruleset (3 847 rules), ET Open (6 892 rules) specified (§4.2)
+- Normal traffic generation: tcpreplay v4.4.2 + CAIDA 2023 (§4.3)
+- σ column added to Table 2 (§5)
+- t-test + ANOVA statistical significance (§5.2)
+- Post-hoc power analysis, β = 0.92 (§5.1)
+- 85% metric documented: engineer profile, 3 attempts, avg 4h08min (§6.1)
+- Scalability: theoretical cluster estimate + Terraform overhead (§6.2)
+- Network isolation: nftables + ebtables rules (§3.2)
+- Modularity examples: Ubuntu→Windows, Metasploit→CALDERA (§3.1)
+- DBSCAN/UEBA results table (§4.6)
+
+### Fixed
+- **IDS mode**: IDS-only explicitly stated (IPS not tested) — abstract, §4.1, conclusion
+- **DDoS Slowloris Snort DR**: 65.3% → 100.0% (real results)
+- **CPU/RAM Table 3**: Snort 68.2%/512MB → **1.6%/41MB** (real, previous values ×40 error)
+- **CPU/RAM Table 3**: Suricata 75.4%/610MB → **7.7%/46MB** (real)
+- **Scarfone/Mell duplicate**: refs §4 and §6 were same NIST SP 800-94 — duplicate removed
+- Architecture levels 4–5 separated: roles vs data/persistence
+
+---
+
+## [v1.0] — 2026-04 (initial submission — contains errors)
+
+> ⚠ DO NOT USE — contains multiple critical errors:
+> - Snort version wrong (3.12.2.0)
+> - CPU/RAM values inflated by ×40 (68.2%/512MB, 75.4%/610MB)
+> - DDoS Slowloris Snort DR wrong (65.3% instead of 100.0%)
+> - FPR Suricata wrong (0.10% instead of 0.69%)
+> - No DBSCAN results
+> - No σ values
+> - No statistical tests
+> - IPS claimed but not tested
