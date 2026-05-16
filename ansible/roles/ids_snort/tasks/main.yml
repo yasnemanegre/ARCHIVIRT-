@@ -75,6 +75,7 @@
       ips =
       {
         enable_builtin_rules = true,
+        variables = { nets = { HOME_NET = HOME_NET, EXTERNAL_NET = EXTERNAL_NET } },
         include = '/etc/snort3/rules/archivirt.rules',
       }
 
