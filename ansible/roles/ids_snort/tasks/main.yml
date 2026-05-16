@@ -96,12 +96,12 @@
       alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Brute-force Attempt"; flow:to_server,established; content:"SSH"; sid:1000010; rev:3;)
       alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Multiple Auth"; flow:to_server,established; sid:1000011; rev:3;)
 
-      # SQL Injection Detection
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi dvwa path"; content:"/dvwa/vulnerabilities/sqli/"; sid:1000020; rev:3;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi quote encoded"; content:"%27"; sid:1000021; rev:3;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi AND encoded"; content:"%20AND%20"; sid:1000022; rev:3;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi SELECT encoded"; content:"%20SELECT%20"; sid:1000023; rev:3;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi UNION encoded"; content:"%20UNION%20"; sid:1000024; rev:3;)
+      # SQL Injection Detection (granular — distinguishes attack types)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi UNION-based"; content:"UNION%20SELECT"; nocase; sid:1000020; rev:4;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Time-based SLEEP"; content:"SLEEP%28"; nocase; sid:1000021; rev:4;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Boolean OR"; content:"OR%201%3D1"; nocase; sid:1000022; rev:4;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi sqlmap UA"; content:"sqlmap"; nocase; sid:1000023; rev:4;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi dvwa path"; content:"/dvwa/vulnerabilities/sqli/"; sid:1000024; rev:4;)
 
       # DDoS Slowloris Detection
       alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT Slowloris DDoS"; flow:to_server,established; content:"GET"; sid:1000030; rev:3;)

@@ -214,8 +214,10 @@
 
       # SQL Injection Detection (sqlmap)
       alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQL Injection UNION"; flow:to_server,established; http.method; content:"GET"; http.uri; content:"UNION"; nocase; content:"SELECT"; nocase; distance:0; within:20; classtype:web-application-attack; sid:2000020; rev:2;)
-      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Boolean Based"; flow:to_server,established; http.uri; content:"OR 1=1"; nocase; classtype:web-application-attack; sid:2000021; rev:2;)
-      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Time Based SLEEP"; flow:to_server,established; http.uri; content:"SLEEP("; nocase; classtype:web-application-attack; sid:2000022; rev:2;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Boolean Based"; flow:to_server,established; http.uri; content:"OR%201%3D1"; nocase; classtype:web-application-attack; sid:2000021; rev:3;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Boolean Unencoded"; flow:to_server,established; http.uri; content:"OR 1=1"; nocase; classtype:web-application-attack; sid:2000025; rev:1;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Time Based SLEEP"; flow:to_server,established; http.uri; content:"SLEEP%28"; nocase; classtype:web-application-attack; sid:2000022; rev:3;)
+      alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP SQLi Time Unencoded"; flow:to_server,established; http.uri; content:"SLEEP("; nocase; classtype:web-application-attack; sid:2000026; rev:1;)
       alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT HTTP sqlmap User-Agent"; flow:to_server,established; http.user_agent; content:"sqlmap"; classtype:web-application-attack; sid:2000023; rev:2;)
 
       # Slowloris DDoS Detection
