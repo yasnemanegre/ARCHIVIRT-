@@ -27,14 +27,12 @@
       - wget
       - vim
       - htop
-      - iotop
       - git
       - python3
       - python3-pip
       - ca-certificates
       - gnupg
       - lsb-release
-      - ntp
     state: present
   ignore_errors: yes
 
@@ -44,7 +42,7 @@
   ignore_errors: yes
 - name: Enable and start NTP
   ansible.builtin.systemd:
-    name: ntp
+    name: systemd-timesyncd
     enabled: true
     state: started
   ignore_errors: yes

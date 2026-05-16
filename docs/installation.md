@@ -1,6 +1,6 @@
 # ARCHIVIRT — Complete Installation Guide
 
-> **Server:** `archivirt@archivirt-lab` | IP: `192.168.4.11`
+> **Server:** `archivirt@archivirt-lab` | IP: `192.168.4.10`
 > **Author:** Yasnemanegre SAWADOGO (PhD Candidate, SPbSUT)
 > **License:** MIT — https://github.com/yasnemanegre/ARCHIVIRT
 
@@ -270,7 +270,7 @@ ansible-playbook ansible/playbooks/calibrate_performance.yml \
 
 # Grafana dashboard (optional)
 sudo systemctl start telegraf grafana-server
-# Access: http://192.168.4.11:3000 (admin / archivirt)
+# Access: http://192.168.4.10:3000 (admin / archivirt)
 # Import: monitoring/grafana/dashboard.json
 ```
 

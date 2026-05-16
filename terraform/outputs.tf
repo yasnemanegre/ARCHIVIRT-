@@ -38,7 +38,7 @@ output "lab_summary" {
     ════════════════════════════════════════════
     ARCHIVIRT Lab Summary
     ════════════════════════════════════════════
-    Host Server      : archivirt@192.168.4.11
+    Host Server      : archivirt@192.168.4.10
 
     Manager VM       : ${var.ip_manager}    (10.0.5.0/24)
     Attacker VM      : ${var.ip_attacker}   (10.0.4.0/24)

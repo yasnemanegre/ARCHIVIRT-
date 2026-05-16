@@ -125,8 +125,8 @@ class TestIsolation:
     """Target VMs must NOT be able to reach host or the internet directly."""
 
     def test_targets_isolated_from_host(self):
-        """Target VMs must not reach the KVM host IP (192.168.4.11)."""
-        reachable = ping_from("10.0.2.11", "192.168.4.11", 2)
+        """Target VMs must not reach the KVM host IP (192.168.4.10)."""
+        reachable = ping_from("10.0.2.11", "192.168.4.10", 2)
         assert not reachable, \
             "Target VM can reach KVM host — network isolation failure"
 

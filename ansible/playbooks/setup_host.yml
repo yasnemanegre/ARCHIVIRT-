@@ -1,15 +1,91 @@
----
-# ARCHIVIRT - Host setup (sudo NOPASSWD for IaC)
+# ARCHIVIRT - Host setup complet (IaC reproductible)
 # Author: Yasnemanegre SAWADOGO (SPbGUPTD)
-# Run once: ansible-playbook setup_host.yml -i localhost,
-
+# Run once: ansible-playbook ansible/playbooks/setup_host.yml -i localhost,
 - name: ARCHIVIRT - Configure host for IaC
   hosts: localhost
   connection: local
   become: yes
   tasks:
+
     - name: Enable passwordless sudo for archivirt
       copy:
         content: "archivirt ALL=(ALL) NOPASSWD: ALL\n"
         dest: /etc/sudoers.d/archivirt
         mode: 0440
+
+    - name: Install nginx (serveur dépôt local)
+      apt:
+        name: nginx
+        state: present
+
+    - name: Créer le dossier du dépôt local
+      file:
+        path: /var/spool/apt-mirror/packages
+        state: directory
+        mode: '0755'
+
+    - name: Configurer nginx pour servir le dépôt sur port 8080
+      copy:
+        dest: /etc/nginx/sites-enabled/apt-local.conf
+        content: |
+          server {
+              listen 8080 default_server;
+              root /var/spool/apt-mirror/packages;
+              autoindex on;
+              location / {
+                  try_files $uri $uri/ =404;
+              }
+          }
+      notify: reload nginx
+
+    - name: Télécharger tous les packages nécessaires
+      shell: |
+        cd /var/spool/apt-mirror/packages
+        apt-get download \
+          suricata snort nmap tcpreplay \
+          net-tools iproute2 tcpdump curl wget vim htop git \
+          python3 python3-pip python3-wheel python3-dev \
+          ca-certificates gnupg lsb-release \
+          openssh-server \
+          apache2 apache2-bin apache2-data apache2-utils \
+          php php-mysql libapache2-mod-php \
+          mariadb-server mariadb-client \
+          vsftpd \
+          samba samba-common samba-common-bin samba-libs \
+          samba-dsdb-modules python3-samba python3-dnspython \
+          tdb-tools \
+          libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap \
+          liblua5.3-0 libgd3 \
+          libavahi-client3 libavahi-common3 libcups2 \
+          influxdb2 telegraf \
+          build-essential \
+          dpkg-dev 2>/dev/null || true
+      args:
+        chdir: /var/spool/apt-mirror/packages
+
+    - name: Générer l'index du dépôt
+      shell: |
+        cd /var/spool/apt-mirror/packages
+        dpkg-scanpackages . /dev/null 2>/dev/null > Packages
+        gzip -k -f Packages
+      args:
+        chdir: /var/spool/apt-mirror/packages
+
+    - name: Installer passlib sur l'hôte (requis pour Ansible user module)
+      pip:
+        name: passlib
+        executable: pip3
+        extra_args: --user
+      become: no
+
+    - name: Démarrer nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: reload nginx
+      systemd:
+        name: nginx
+        state: reloaded
