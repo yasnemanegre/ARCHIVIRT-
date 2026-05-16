@@ -74,7 +74,6 @@
       ips =
       {
         enable_builtin_rules = true,
-        variables = default_variables,
         include = '/etc/snort3/rules/archivirt.rules',
       }
 
