@@ -13,13 +13,10 @@
       - sqlmap
       - netcat-openbsd
       - python3-pip
-      - python3-scapy
       - curl
       - wget
       - hping3
       - masscan
-      - john
-      - medusa
     state: present
 
 - name: Install Python slowloris tool
