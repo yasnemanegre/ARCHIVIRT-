@@ -9,7 +9,7 @@
   ansible.builtin.apt:
     name:
       - nmap
-      - hydra
+      - ncrack
       - sqlmap
       - netcat-openbsd
       - python3-pip
@@ -173,7 +173,7 @@
       ════════════════════════════════════════════
       Attacker VM configured. Available tools:
         - nmap       : Port scanning
-        - hydra      : SSH/FTP brute-force
+        - ncrack      : SSH/FTP brute-force
         - sqlmap     : SQL injection
         - msfconsole : Metasploit Framework
         - slowloris  : /opt/archivirt/attack-scripts/slowloris.py
