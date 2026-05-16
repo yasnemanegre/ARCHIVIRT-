@@ -59,7 +59,7 @@
   ignore_errors: yes
 - name: "[web] Deploy DVWA from local mirror (IaC offline)"
   ansible.builtin.unarchive:
-    src: "http://{{ archivirt_host_ip }}:8080/dvwa.tar.gz"
+    src: "http://10.0.2.1:8080/dvwa.tar.gz"
     dest: /var/www/html/
     remote_src: yes
     creates: /var/www/html/dvwa/index.php
