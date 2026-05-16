@@ -1,0 +1,28 @@
+-- ARCHIVIRT Snort 3 Configuration (IaC template Jinja2)
+-- Deployed automatically by Ansible
+-- Variables injectées depuis hosts.ini
+
+HOME_NET = '{{ target_subnet }}'
+EXTERNAL_NET = '{{ attack_subnet }}'
+
+include '/usr/local/etc/snort/snort_defaults.lua'
+
+output_timestamps = { utc = true }
+
+network = { checksum_eval = 'none' }
+
+alert_fast = {
+    file = true,
+    limit = 100000,
+}
+
+alert_json = {
+    file = true,
+    limit = 100000,
+}
+
+ips = {
+    enable_builtin_rules = true,
+    variables = { nets = { HOME_NET = HOME_NET, EXTERNAL_NET = EXTERNAL_NET } },
+    include = '/etc/snort3/rules/archivirt.rules',
+}

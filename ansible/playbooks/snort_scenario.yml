@@ -68,8 +68,8 @@
         mode: "0755"
 
     - name: Deploy Snort configuration (UTC timestamps enforced)
-      copy:
-        src:  /home/archivirt/ARCHIVIRT/configs/snort/snort.lua
+      template:
+        src:  /home/archivirt/ARCHIVIRT/configs/snort/snort.lua.j2
         dest: /etc/snort3/snort.lua
 
     - name: Stop any previous Snort3 instance
