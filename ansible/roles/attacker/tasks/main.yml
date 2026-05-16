@@ -19,14 +19,14 @@
       - masscan
     state: present
 
-- name: Install Python slowloris tool
+- name: Install Python attack dependencies
   ansible.builtin.pip:
     name:
-      - slowloris
       - requests
-      - scapy
       - paramiko
     executable: pip3
+    extra_args: --no-index --find-links file:///var/spool/apt-mirror/packages/pip/
+  ignore_errors: yes
 
 - name: Create attack scripts directory
   ansible.builtin.file:
