@@ -57,14 +57,13 @@
     state: present
   when: target_role == "web"
   ignore_errors: yes
-- name: "[web] Clone DVWA (Damn Vulnerable Web Application)"
-  ansible.builtin.git:
-    repo: https://github.com/digininja/DVWA.git
-    dest: /var/www/html/dvwa
-    version: master
-    force: true
+- name: "[web] Deploy DVWA from local mirror (IaC offline)"
+  ansible.builtin.unarchive:
+    src: "http://{{ archivirt_host_ip }}:8080/dvwa.tar.gz"
+    dest: /var/www/html/
+    remote_src: yes
+    creates: /var/www/html/dvwa/index.php
   when: target_role == "web"
-
   ignore_errors: yes
 - name: "[web] Copy DVWA config"
   ansible.builtin.copy:
