@@ -97,10 +97,10 @@
       alert tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT SSH Multiple Auth"; flow:to_server,established; sid:1000011; rev:3;)
 
       # SQL Injection Detection (granular — distinguishes attack types)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi UNION-based"; content:"UNION%20SELECT"; nocase; sid:1000020; rev:4;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Time-based SLEEP"; content:"SLEEP%28"; nocase; sid:1000021; rev:4;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Boolean OR"; content:"OR%201%3D1"; nocase; sid:1000022; rev:4;)
-      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi sqlmap UA"; content:"sqlmap"; nocase; sid:1000023; rev:4;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi UNION-based"; content:"UNION%20SELECT"; sid:1000020; rev:5;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Time-based SLEEP"; content:"SLEEP%28"; sid:1000021; rev:5;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi Boolean OR"; content:"OR%201%3D1"; sid:1000022; rev:5;)
+      alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi sqlmap UA"; content:"sqlmap"; sid:1000023; rev:5;)
       alert tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT SQLi dvwa path"; content:"/dvwa/vulnerabilities/sqli/"; sid:1000024; rev:4;)
 
       # DDoS Slowloris Detection
