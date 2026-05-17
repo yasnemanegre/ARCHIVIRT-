@@ -4,6 +4,33 @@
 
 ---
 
+## [v3.2] — 2026-05-17
+### Fixed (session 16-17.05.2026)
+- **Snort 3.1.74.0**: règles SQLi granulaires (encodé/non-encodé)
+- **IaC**: HOME_NET résolu via ips.variables.nets Snort 3.1.74
+- **IaC**: snort.lua converti en template Jinja2
+- **IaC**: archivirt_project_dir variable portable dans hosts.ini
+- **IaC**: ansible_python_interpreter explicite
+- **Attacker**: hydra → ncrack v0.7 (X11 incompatible)
+- **Attacker**: john/medusa/scapy supprimés
+- **IP hôte**: 192.168.4.11 → 192.168.4.10 corrigé partout
+- **NTP**: ntp → systemd-timesyncd
+- **DVWA**: déploiement via miroir local offline
+- **Dépôt apt**: nginx:8080, 227 packages, setup_host.yml
+
+### Added
+- **Telegraf monitor-ids**: métriques IDS → InfluxDB manager
+- **Grafana**: datasource + dashboard IaC
+- **InfluxDB**: initialisé (archivirt/archivirt-metrics)
+- **Route réseau**: monitor-ids → manager via 10.0.3.1
+- **setup_host.yml**: dépendances complètes IaC reproductibles
+
+### Results (campagne 16.05.2026)
+- Snort  : 157 549 alertes | CPU 1.6% | RAM 41MB | DR=100%
+- Suricata:   3 244 alertes | CPU 7.7% | RAM 46MB | DR=100%
+- DBSCAN: Snort 14 clusters/12 anomalies | Suricata 3/0
+
+---
 ## [v3.1] — 2026-05-15
 
 ### Added
