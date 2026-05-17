@@ -115,7 +115,7 @@
 
       [Service]
       Type=simple
-      User=ubuntu
+      User=root
       Environment=ARCHIVIRT_HOST_IP={{ archivirt_host_ip }}
       ExecStart=/usr/bin/python3 /opt/archivirt/archivirt-ips-enforcer.py
       Restart=on-failure

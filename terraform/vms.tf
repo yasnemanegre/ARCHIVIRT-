@@ -165,6 +165,8 @@ resource "libvirt_cloudinit_disk" "monitor" {
         gateway4: 10.0.3.1
       eth1:
         addresses: [10.0.2.200/24]
+      ens5:
+        addresses: [10.0.4.200/24]
   EOF
 }
 
@@ -190,6 +192,10 @@ resource "libvirt_domain" "monitor" {
   # Tap interface connected to target network for passive monitoring
   network_interface {
     network_id = libvirt_network.targets.id
+  }
+  # IPS inline interface connected to attack network
+  network_interface {
+    network_id = libvirt_network.attack.id
   }
 
   disk {
