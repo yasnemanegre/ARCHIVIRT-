@@ -256,3 +256,24 @@
 - name: Print Suricata status
   ansible.builtin.debug:
     msg: "Suricata 6 status: {{ suricata_status.stdout }}"
+
+- name: Install Telegraf on monitor-ids
+  ansible.builtin.apt:
+    name: telegraf
+    state: present
+  ignore_errors: yes
+
+- name: Deploy Telegraf monitor-ids configuration
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../monitoring/telegraf-monitor.conf"
+    dest: /etc/telegraf/telegraf.conf
+    owner: telegraf
+    group: telegraf
+    mode: "0644"
+
+- name: Enable and start Telegraf on monitor-ids
+  ansible.builtin.systemd:
+    name: telegraf
+    enabled: true
+    state: restarted
+  ignore_errors: yes
