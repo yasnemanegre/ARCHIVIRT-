@@ -114,6 +114,20 @@
     status_code: [200, 412]
   ignore_errors: yes
 
+
+- name: Set Grafana admin password
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/admin/users/1/password"
+    method: PUT
+    user: admin
+    password: admin
+    force_basic_auth: yes
+    body_format: json
+    body:
+      password: "yasnemanegre"
+    status_code: [200, 412]
+  ignore_errors: yes
+
 - name: Print manager VM ready message
   ansible.builtin.debug:
     msg: |
