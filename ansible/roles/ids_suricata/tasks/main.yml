@@ -45,9 +45,13 @@
 
 - name: Configure iptables NFQUEUE for IPS mode
   ansible.builtin.shell: |
-    iptables -I FORWARD -i ens3 -o ens3 -j NFQUEUE --queue-num 0
-    iptables -I INPUT -j NFQUEUE --queue-num 0
-    iptables -I OUTPUT -j NFQUEUE --queue-num 0
+    # Exclure SSH et trafic de gestion du NFQUEUE
+    iptables -I INPUT -p tcp --dport 22 -j ACCEPT
+    iptables -I OUTPUT -p tcp --sport 22 -j ACCEPT
+    iptables -I FORWARD -p tcp --dport 22 -j ACCEPT
+    # NFQUEUE pour le trafic cible uniquement
+    iptables -A FORWARD -s {{ attack_subnet }} -d {{ target_subnet }} -j NFQUEUE --queue-num 0
+    iptables -A FORWARD -s {{ target_subnet }} -d {{ attack_subnet }} -j NFQUEUE --queue-num 0
   when: ids_mode | default('ids') == 'ips'
   ignore_errors: yes
 
@@ -65,6 +69,17 @@
     regexp: "interface: default"
     replace: "interface: {{ monitor_interface | default('ens4') }}"
 
+- name: Configure Suricata service command (IDS vs IPS)
+  ansible.builtin.lineinfile:
+    path: /lib/systemd/system/suricata.service
+    regexp: "^ExecStart="
+    line: "ExecStart=/usr/bin/suricata -D {% if ids_mode | default('ids') == 'ips' %}-q 0{% else %}--af-packet{% endif %} -c /etc/suricata/suricata.yaml --pidfile /run/suricata.pid"
+
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
 - name: Enable Suricata service
   ansible.builtin.systemd:
     name: suricata
@@ -80,6 +95,52 @@
 - name: Print Suricata status
   ansible.builtin.debug:
     msg: "Suricata 6 status: {{ suricata_status.stdout }}"
+
+- name: Deploy IPS Enforcer script
+  ansible.builtin.copy:
+    src: "{{ archivirt_project_dir }}/ansible/roles/ids_suricata/files/archivirt-ips-enforcer.py"
+    dest: /opt/archivirt/archivirt-ips-enforcer.py
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+  when: ids_mode | default('ids') == 'ips'
+
+- name: Deploy IPS Enforcer systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/archivirt-ips.service
+    content: |
+      [Unit]
+      Description=ARCHIVIRT IPS Enforcer
+      After=suricata.service
+
+      [Service]
+      Type=simple
+      User=ubuntu
+      Environment=ARCHIVIRT_HOST_IP={{ archivirt_host_ip }}
+      ExecStart=/usr/bin/python3 /opt/archivirt/archivirt-ips-enforcer.py
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+  when: ids_mode | default('ids') == 'ips'
+
+- name: Enable IPS Enforcer service
+  ansible.builtin.systemd:
+    name: archivirt-ips
+    daemon_reload: true
+    enabled: true
+    state: started
+  when: ids_mode | default('ids') == 'ips'
+  ignore_errors: yes
+
+- name: Disable IPS Enforcer service (IDS mode)
+  ansible.builtin.systemd:
+    name: archivirt-ips
+    enabled: false
+    state: stopped
+  when: ids_mode | default('ids') == 'ids'
+  ignore_errors: yes
 
 - name: Install Telegraf on monitor-ids
   ansible.builtin.apt:
