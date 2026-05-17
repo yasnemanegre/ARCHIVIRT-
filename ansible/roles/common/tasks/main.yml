@@ -94,3 +94,22 @@
     group: ubuntu
     mode: "0755"
 
+
+- name: Configure persistent route monitor-ids → manager (netplan)
+  ansible.builtin.copy:
+    dest: /etc/netplan/99-archivirt-routes.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          ens3:
+            routes:
+              - to: 10.0.5.0/24
+                via: 10.0.3.1
+    mode: "0600"
+  when: "'monitor' in inventory_hostname"
+
+- name: Apply netplan routes
+  ansible.builtin.shell: netplan apply
+  when: "'monitor' in inventory_hostname"
+  changed_when: true
