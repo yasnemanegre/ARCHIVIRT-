@@ -29,6 +29,13 @@
 | Suricata | 3 000  | 3        | 0         | 0.00  |
 
 ---
+## Methodological Note — DR=100% vs v2.0
+- v2.0 used Snort 2 `threshold` keyword (deprecated in Snort 3.1.74)
+- Current rules use Snort 3 syntax without threshold → every sqlmap request triggers alert
+- DR=100% is correct and reproducible with current ruleset
+- Difference vs v2.0 (85.2%/92.7%) explained by threshold removal, not detection capability
+
+---
 ## Notes
 - DR=100% tous scénarios — règles sans threshold Snort 2
 - SQLi : règles granulaires déployées pour campagne suivante
