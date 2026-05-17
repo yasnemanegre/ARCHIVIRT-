@@ -3,7 +3,7 @@
 ## Overview
 
 ARCHIVIRT follows a 5-layer architecture fully automated by Infrastructure as Code
-(Terraform v1.5+ + Ansible v2.16+). All layers are defined declaratively in the
+(Terraform v1.15.3 + Ansible-core v2.17.14). All layers are defined declaratively in the
 repository — no manual step is required between `git clone` and a running test campaign.
 
 ---
@@ -15,15 +15,18 @@ repository — no manual step is required between `git clone` and a running test
 - Hardware reference: Intel Xeon E5-2690 v4, 16 cores, 64 GB RAM, NVMe SSD.
 
 ### Layer 2 — Orchestration (IaC)
-- **Terraform v1.5+**: provisions VMs and virtual networks (`terraform/`).
-- **Ansible v2.16+**: configures VMs, deploys IDS engines, runs attack scenarios (`ansible/`).
+- **Terraform v1.15.3**: provisions VMs and virtual networks (`terraform/`).
+- **Ansible-core v2.17.14**: configures VMs, deploys IDS engines, runs attack scenarios (`ansible/`).
 
 ### Layer 3 — Virtual Layer
 - All VMs run on isolated KVM networks — no external routing.
+- **Local APT mirror**: nginx on host 192.168.4.10:8080 (227+ packages) — offline IaC
 - Network isolation enforced via `nftables` (no host forwarding) and `ebtables` (ARP per subnet).
 - Traffic mirroring handled by `scripts/archivirt_mirrors.sh` (all vnets → monitor interface).
 
 ### Layer 4 — Functional Roles
+> Monitoring stack: Telegraf (monitor-ids + manager) → InfluxDB → Grafana (http://10.0.5.10:3000)
+
 
 | Role | Subnet | VMs | Services |
 |------|--------|-----|----------|

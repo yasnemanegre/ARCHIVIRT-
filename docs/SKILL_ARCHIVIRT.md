@@ -1,28 +1,28 @@
 # ARCHIVIRT — IaC Knowledge Base
-# Author: Yasnemanegre SAWADOGO (PhD Student, SPbGUPTD)
-# Updated: 15.05.2026 — v3.1
+# Author: Yasnemanegre SAWADOGO (PhD Student, SPbSUITD)
+# Updated: 17.05.2026 — v3.2
 # Repository: https://github.com/yasnemanegre/ARCHIVIRT (MIT License)
 
 ---
 
-## Validated Results — Campaign 15.05.2026 (10 runs, σ = 0.00%)
+## Validated Results — Campaign 17.05.2026 (10 runs, σ = 0.00%)
 
 ### Table 2 — Detection Efficiency Metrics (average over 10 runs)
 
 | Scenario          | IDS              | Alerts  | DR%    | FPR%  | σ DR% | Latency (ms) |
 |-------------------|------------------|---------|--------|-------|-------|--------------|
-| Port Scan         | Snort 3.1.74.0   | 30 562  | 100.0  | 0.02  | 0.0%  | 0.0 ★        |
-| Port Scan         | Suricata 6.0.4   | 41      | 100.0  | 0.69  | 0.0%  | 1 796.1      |
-| SSH Brute-force   | Snort 3.1.74.0   | 27      | 100.0  | 0.02  | 0.8%  | 427.2        |
-| SSH Brute-force   | Suricata 6.0.4   | 41      | 100.0  | 0.69  | 0.5%  | 2 625.5      |
-| SQL Injection     | Snort 3.1.74.0   | 0       | 0.0 †  | 0.02  | —     | —            |
-| SQL Injection     | Suricata 6.0.4   | 1 143   | 100.0  | 0.69  | 0.9%  | 0.0 ★        |
-| DDoS Slowloris    | Snort 3.1.74.0   | 2 664   | 100.0  | 0.02  | 0.0%  | 12 839.9     |
-| DDoS Slowloris    | Suricata 6.0.4   | 11 034  | 100.0  | 0.69  | 0.0%  | 0.0 ★        |
-| Normal Traffic    | Snort 3.1.74.0   | 0       | N/A    | 0.02  | —     | N/A          |
-| Normal Traffic    | Suricata 6.0.4   | 85      | N/A    | 0.69  | —     | N/A          |
-| **TOTAL**         | **Snort 3.1.74.0** | **33 253** | —  | —     | —     | —            |
-| **TOTAL**         | **Suricata 6.0.4** | **12 344** | —  | —     | —     | —            |
+| Port Scan         | Snort 3.1.74.0   | 153 194 | 100.0  | 0.01  | 0.0%  | 77.6         |
+| Port Scan         | Suricata 6.0.4   | 1 592   | 100.0  | 0.65  | 0.0%  | 81.6         |
+| SSH Brute-force   | Snort 3.1.74.0   | 114     | 100.0  | 0.01  | 0.0%  | 74.8         |
+| SSH Brute-force   | Suricata 6.0.4   | 32      | 100.0  | 0.65  | 0.0%  | 75.4         |
+| SQL Injection     | Snort 3.1.74.0   | 20      | 100.0  | 0.01  | 0.0%  | 239.7        |
+| SQL Injection     | Suricata 6.0.4   | 19      | 100.0  | 0.65  | 0.0%  | 292.0        |
+| DDoS Slowloris    | Snort 3.1.74.0   | 4 200   | 100.0  | 0.01  | 0.0%  | 0.0          |
+| DDoS Slowloris    | Suricata 6.0.4   | 1 580   | 100.0  | 0.65  | 0.0%  | 0.0          |
+| Normal Traffic    | Snort 3.1.74.0   | 21      | N/A    | 0.01  | —     | N/A          |
+| Normal Traffic    | Suricata 6.0.4   | 21      | N/A    | 0.65  | —     | N/A          |
+| **TOTAL**         | **Snort 3.1.74.0** | **157 549** | — | —    | —     | —            |
+| **TOTAL**         | **Suricata 6.0.4** | **3 244**   | — | —    | —     | —            |
 
 > ★ Latency = 0.0 ms — inter-VM clock skew of ~800 ms (attacker vs monitor VM) clamps negative
 >   values to 0. Both engines subject to identical offset — Snort/Suricata comparison remains valid.
@@ -133,7 +133,7 @@ sudo mkdir -p /tmp/snort3-pkg/usr/local/{bin,lib,share}
 sudo mkdir -p /tmp/snort3-pkg/DEBIAN
 sudo cp /usr/local/bin/snort /tmp/snort3-pkg/usr/local/bin/
 printf 'Package: snort3\nVersion: 3.1.74.0\nArchitecture: amd64\n\
-Maintainer: ARCHIVIRT SPbGUPTD\nDescription: Snort 3.1.74.0 IDS\n' | \
+Maintainer: ARCHIVIRT SPbSUITD\nDescription: Snort 3.1.74.0 IDS\n' | \
   sudo tee /tmp/snort3-pkg/DEBIAN/control
 sudo dpkg-deb --build /tmp/snort3-pkg /tmp/snort3_3.1.74.0_amd64.deb
 sudo cp /tmp/snort3_3.1.74.0_amd64.deb /var/spool/apt-mirror/packages/
@@ -205,5 +205,5 @@ sudo bash scripts/archivirt_mirrors.sh
 - Never hardcode virbr names — always use `virsh net-info`
 - Never SSH ubuntu@IP in scripts — always use Ansible
 - All source configs in `configs/` — never edit directly on VM
-- Author: **Yasnemanegre SAWADOGO (PhD Student, SPbGUPTD)**
+- Author: **Yasnemanegre SAWADOGO (PhD Student, SPbSUITD)**
 - University: **СПбГУПТД** (not СПбГУПТД)

@@ -1,7 +1,7 @@
 # ARCHIVIRT — Complete Installation Guide
 
 > **Server:** `archivirt@archivirt-lab` | IP: `192.168.4.10`
-> **Author:** Yasnemanegre SAWADOGO (PhD Candidate, SPbSUT)
+> **Author:** Yasnemanegre SAWADOGO (PhD Candidate, SPbSUITD)
 > **License:** MIT — https://github.com/yasnemanegre/ARCHIVIRT
 
 ---
@@ -75,10 +75,18 @@ virsh list --all
 
 ---
 
+## 2b. Local APT Mirror Setup
+```bash
+# Setup local apt mirror (required for offline IaC deployment)
+ansible-playbook ansible/playbooks/setup_host.yml
+# Mirror served at http://192.168.4.10:8080 (nginx)
+# 227+ packages pre-downloaded
+```
+---
 ## 3. Terraform Installation
 
 ```bash
-# Install Terraform v1.5+
+# Install Terraform v1.15.3
 wget -O- https://apt.releases.hashicorp.com/gpg | \
     sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 
@@ -90,7 +98,7 @@ sudo apt update && sudo apt install -y terraform libvirt-dev
 
 # Verify
 terraform --version
-# Expected: Terraform v1.5.x or higher
+# Expected: Terraform v1.15.3
 ```
 
 ---
@@ -98,7 +106,7 @@ terraform --version
 ## 4. Ansible Installation
 
 ```bash
-# Install Ansible v2.16+
+# Install Ansible-core v2.17.14
 sudo apt install -y software-properties-common
 sudo add-apt-repository --yes --update ppa:ansible/ansible
 sudo apt install -y ansible
@@ -130,7 +138,7 @@ pip3 install \
     paramiko
 
 # Verify
-python3 -c "import sklearn, dateutil, numpy, pandas; print('All OK')"
+python3 -c "import sklearn, dateutil, numpy, pandas, passlib; print('All OK')"
 ```
 
 ---

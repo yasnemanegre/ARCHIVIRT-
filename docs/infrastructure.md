@@ -7,9 +7,9 @@
 ### Virtual Machines (6 total)
 | VM Name                | IP          | Role          |
 |------------------------|-------------|---------------|
-| archivirt-manager      | 10.0.5.10   | Analysis (Grafana, DBSCAN) |
-| archivirt-attacker     | 10.0.4.10   | Attack tools |
-| archivirt-monitor-ids  | 10.0.3.10   | IDS/IPS (Snort3/Suricata) |
+| archivirt-manager      | 10.0.5.10   | InfluxDB, Telegraf, Grafana, DBSCAN |
+| archivirt-attacker     | 10.0.4.10   | nmap, ncrack, sqlmap, hping3, masscan |
+| archivirt-monitor-ids  | 10.0.3.10   | Snort 3.1.74.0, Suricata 6.0.4, Telegraf |
 | archivirt-target-01     | 10.0.2.11   | DVWA/Apache   |
 | archivirt-target-02     | 10.0.2.12   | vsftpd/SSH    |
 | archivirt-target-03     | 10.0.2.13   | Samba/MariaDB |
@@ -20,6 +20,17 @@
 - 10.0.4.0/24 – Attack/Control network
 - 10.0.5.0/24 – Management network
 
+## Local APT Mirror
+- **Host**: 192.168.4.10:8080 (nginx)
+- **Path**: `/var/spool/apt-mirror/packages/` (227+ packages)
+- **Setup**: `ansible-playbook ansible/playbooks/setup_host.yml`
+- **VMs config**: `/etc/apt/sources.list.d/archivirt-local.list`
+
+## Monitoring Stack
+- **Telegraf** → monitor-ids + manager → **InfluxDB** (10.0.5.10:8086)
+- **Grafana** → http://10.0.5.10:3000 (admin/yasnemanegre)
+- **Route**: monitor-ids → manager via 10.0.3.1 (netplan persistent)
+
 ## Terraform Variables
 Edit `terraform/variables.tf` to adjust resources (vCPU, RAM, disk).
 Default: 2 vCPU, 4 GB RAM per VM.
@@ -27,6 +38,10 @@ Default: 2 vCPU, 4 GB RAM per VM.
 ## Ansible Inventory
 - `ansible/inventory/hosts.ini` – IP addresses and groups
 - SSH key: `~/.ssh/archivirt_key` (distributed to all VMs)
+- Key variables: `target_subnet`, `attack_subnet`, `monitor_subnet`, `manager_subnet`
+- `snort_binary=/usr/local/bin/snort`
+- `archivirt_project_dir=/home/archivirt/ARCHIVIRT`
+- `ansible_python_interpreter=/usr/bin/python3`
 
 ## Important Scripts
 - `scripts/archivirt_mirrors.sh` – Sets up traffic mirroring for the monitor.

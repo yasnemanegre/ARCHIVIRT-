@@ -3,9 +3,11 @@
 ## Prerequisites
 
 - Ubuntu 22.04 LTS host with KVM/libvirt
-- Terraform ≥ 1.5, Ansible ≥ 2.16
-- Python 3.10+ with `pandas`, `scikit-learn`, `numpy`, `python-dateutil`
+- Terraform v1.15.3, Ansible-core v2.17.14
+- Python 3.10+ with `pandas`, `scikit-learn`, `numpy`, `python-dateutil`, `passlib`
 - All VMs deployed: `terraform apply` + `ansible-playbook ansible/site.yml`
+- Local APT mirror configured: `ansible-playbook ansible/playbooks/setup_host.yml`
+- SSH tunnel for Grafana: `ssh -L 3000:10.0.5.10:3000 archivirt@192.168.4.10`
 
 ---
 
@@ -21,7 +23,7 @@ ansible-playbook ansible/playbooks/run_all_scenarios.yml \
 ```
 
 The pipeline runs automatically:
-1. Snort 3.12.2.0 — SCN-001 to SCN-005
+1. Snort 3.1.74.0 — SCN-001 to SCN-005
 2. Suricata 6.0.4 — SCN-001 to SCN-005
 3. Metrics computation (`build_final_results.py`)
 4. DBSCAN/UEBA analysis (`dbscan_from_fetched.py`)
@@ -151,7 +153,7 @@ Throughput (Mbps) from `performance_baseline.json`.
 
 | IDS | Alert log | Timestamp format |
 |-----|-----------|-----------------|
-| Snort 3.12.2.0 | `/var/log/snort3/SCN-XXX/alert_json.txt` | `MM/DD-HH:MM:SS.ffffff` (UTC) |
+| Snort 3.1.74.0 | `/var/log/snort3/SCN-XXX/alert_json.txt` | `MM/DD-HH:MM:SS.ffffff` (UTC) |
 | Suricata 6.0.4 | `/var/log/suricata/SCN-XXX/eve.json` | ISO 8601 UTC |
 
 Both formats are parsed automatically by `build_final_results.py`.

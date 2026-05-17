@@ -2,7 +2,7 @@
 
 **Automated Reproducible Cyber Hybrid Infrastructure for VIRTual SOAR Testing Labs**
 
-> MIT License | SPbGUPTD | Author: Yasnemanegre SAWADOGO | v3.1 — 15.05.2026
+> MIT License | SPbGUPTD | Author: Yasnemanegre SAWADOGO | v3.2 — 17.05.2026
 
 ---
 
@@ -14,34 +14,34 @@ Built on Infrastructure as Code (IaC) principles, ARCHIVIRT enables reproducible
 
 ---
 
-## Quick Results — Campaign 15.05.2026
+## Quick Results — Campaign 17.05.2026
 
 ### Detection Efficiency (Table 2)
 
 | Scenario         | IDS              | Alerts  | DR%    | FPR%  | Latency (ms) |
 |------------------|------------------|---------|--------|-------|--------------|
-| Port Scan        | Snort 3.1.74.0   | 30 562  | 100.0  | 0.02  | 0.0 ★        |
-| Port Scan        | Suricata 6.0.4   | 41      | 100.0  | 0.69  | 1 796.1      |
-| SSH Brute-force  | Snort 3.1.74.0   | 27      | 100.0  | 0.02  | 427.2        |
-| SSH Brute-force  | Suricata 6.0.4   | 41      | 100.0  | 0.69  | 2 625.5      |
-| SQL Injection    | Snort 3.1.74.0   | 0       | 0.0 †  | 0.02  | —            |
-| SQL Injection    | Suricata 6.0.4   | 1 143   | 100.0  | 0.69  | 0.0 ★        |
-| DDoS Slowloris   | Snort 3.1.74.0   | 2 664   | 100.0  | 0.02  | 12 839.9     |
-| DDoS Slowloris   | Suricata 6.0.4   | 11 034  | 100.0  | 0.69  | 0.0 ★        |
-| Normal Traffic   | Snort 3.1.74.0   | 0       | N/A    | 0.02  | N/A          |
-| Normal Traffic   | Suricata 6.0.4   | 85      | N/A    | 0.69  | N/A          |
-| **TOTAL**        | **Snort 3.1.74.0** | **33 253** | — | —     | —            |
-| **TOTAL**        | **Suricata 6.0.4** | **12 344** | — | —     | —            |
+| Port Scan        | Snort 3.1.74.0   | 153 194   | 100.0  | 0.01  | 77.6         |
+| Port Scan        | Suricata 6.0.4   | 1 592     | 100.0  | 0.65  | 81.6         |
+| SSH Brute-force  | Snort 3.1.74.0   | 114       | 100.0  | 0.01  | 74.8         |
+| SSH Brute-force  | Suricata 6.0.4   | 32        | 100.0  | 0.65  | 75.4         |
+| SQL Injection    | Snort 3.1.74.0   | 20        | 100.0  | 0.01  | 239.7        |
+| SQL Injection    | Suricata 6.0.4   | 19        | 100.0  | 0.65  | 292.0        |
+| DDoS Slowloris   | Snort 3.1.74.0   | 4 200     | 100.0  | 0.01  | 0.0          |
+| DDoS Slowloris   | Suricata 6.0.4   | 1 580     | 100.0  | 0.65  | 0.0          |
+| Normal Traffic   | Snort 3.1.74.0   | 21        | N/A    | 0.01  | N/A          |
+| Normal Traffic   | Suricata 6.0.4   | 21        | N/A    | 0.65  | N/A          |
+| **TOTAL**        | **Snort 3.1.74.0** | **157 549** | — | —     | —            |
+| **TOTAL**        | **Suricata 6.0.4** | **3 244** | — | —     | —            |
 
 > ★ Latency = 0.0 ms — inter-VM clock skew ~800 ms clamps negative values to 0.
 > Both engines identical offset → Snort/Suricata comparison remains valid.
 >
 > † Snort SQL Injection: 0 real-time alerts, DR=0.0% via signatures.
-> Detection occurs post-hoc via DBSCAN anomaly correlation (10 anomalies, 0.33%).
+> Rules updated to Snort 3.1.74 syntax — DR=100% all scenarios.
 
 **Total alert verification:**
-- Snort: 30 562 + 27 + 0 + 2 664 + 0 = **33 253** ✓
-- Suricata: 41 + 41 + 1 143 + 11 034 + 85 = **12 344** ✓
+- Snort: 153 194 + 114 + 20 + 4 200 + 21 = **157 549** ✓
+- Suricata: 1 592 + 32 + 19 + 1 580 + 21 = **3 244** ✓
 
 ---
 
@@ -49,12 +49,12 @@ Built on Infrastructure as Code (IaC) principles, ARCHIVIRT enables reproducible
 
 | IDS              | Total Alerts | CPU%  | RAM MB | Mbps  |
 |------------------|--------------|-------|--------|-------|
-| Snort 3.1.74.0   | **33 253**   | 1.6   | 41     | 945   |
-| Suricata 6.0.4   | **12 344**   | 7.7   | 46     | 1 120 |
+| Snort 3.1.74.0   | **157 549**   | 1.6   | 41     | 945   |
+| Suricata 6.0.4   | **3 244**   | 7.7   | 46     | 1 120 |
 
 > CPU/RAM measured via `top` + `/proc/meminfo` collected by Telegraf → InfluxDB → Grafana.
 > Snort generates **2.7× more alerts** with **4.8× lower CPU** than Suricata.
-> Port Scan accounts for **91.9%** of Snort alerts (30 562 / 33 253).
+> Port Scan accounts for **97.2%** of Snort alerts (153 194 / 157 549).
 
 ---
 
@@ -62,8 +62,8 @@ Built on Infrastructure as Code (IaC) principles, ARCHIVIRT enables reproducible
 
 | IDS              | Events | Clusters | Anomalies | Anomaly % |
 |------------------|--------|----------|-----------|-----------|
-| Snort 3.1.74.0   | 3 000  | 1        | **10**    | **0.33%** |
-| Suricata 6.0.4   | 3 000  | 2        | 0         | 0.00%     |
+| Snort 3.1.74.0   | 3 000  | 14       | **12**    | **0.40%** |
+| Suricata 6.0.4   | 3 000  | 3        | 0         | 0.00%     |
 
 > ε = 0.5, min_samples = 5. Runtime < 2s per engine.
 
@@ -73,7 +73,7 @@ Built on Infrastructure as Code (IaC) principles, ARCHIVIRT enables reproducible
 
 ```
 Level 1 — Physical Host   : Dell Xeon E5-2690 v4, 16c, 64 GB RAM, NVMe SSD
-Level 2 — IaC             : Terraform v1.5+ + Ansible v2.16+
+Level 2 — IaC             : Terraform v1.15.3 + Ansible-core v2.17.14
 Level 3 — Virtual         : KVM/Libvirt VMs in isolated private networks
 Level 4 — Functional roles: Targets | Monitor/IDS | Attacker | Manager
 Level 5 — Data/Metrics    : Logs, PCAP captures, reports (InfluxDB + Grafana)
