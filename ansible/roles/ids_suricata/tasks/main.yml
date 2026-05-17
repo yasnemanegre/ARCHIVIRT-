@@ -170,7 +170,15 @@
       max-pending-packets: 1024
       runmode: autofp
 
-      # Capture
+      # Capture — IDS (af-packet) ou IPS (nfqueue)
+{% if ids_mode | default('ids') == 'ips' %}
+      nfqueue:
+        mode: repeat
+        repeat-mark: 1
+        repeat-mask: 1
+        route-queue: 2
+        batchcount: 20
+{% else %}
       af-packet:
         - interface: default
           threads: auto
@@ -187,8 +195,9 @@
       pcap:
         - interface: default
           buffer-size: 16mb
-          bpf-filter: "not host 192.168.4.10"
+          bpf-filter: "not host {{ archivirt_host_ip }}"
           checksum-checks: auto
+{% endif %}
 
       legacy:
         uricontent: enabled
@@ -226,6 +235,14 @@
       # FTP Brute-force
       alert tcp any any -> $FTP_SERVERS $FTP_PORTS (msg:"ARCHIVIRT FTP Auth Brute-force"; flow:to_server,established; content:"PASS"; threshold:type threshold, track by_src, count 5, seconds 30; classtype:attempted-user; sid:2000040; rev:2;)
 
+      # ── IPS DROP rules (actives si ids_mode=ips) ──
+{% if ids_mode | default('ids') == 'ips' %}
+      drop tcp any any -> $HOME_NET any (msg:"ARCHIVIRT IPS DROP Nmap SYN"; flags:S,12; threshold:type threshold, track by_src, count 50, seconds 2; sid:3000001; rev:1;)
+      drop tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT IPS DROP SSH Brute"; flow:to_server,established; content:"SSH"; threshold:type both, track by_src, count 10, seconds 30; sid:3000010; rev:1;)
+      drop tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT IPS DROP SQLi UNION"; content:"UNION%20SELECT"; sid:3000020; rev:1;)
+      drop tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT IPS DROP sqlmap"; content:"sqlmap"; sid:3000021; rev:1;)
+      drop tcp any any -> $HOME_NET 80 (msg:"ARCHIVIRT IPS DROP Slowloris"; flow:to_server,established; content:"GET"; threshold:type both, track by_dst, count 200, seconds 30; sid:3000030; rev:1;)
+{% endif %}
       # SMB Scan/Exploitation
       alert smb any any -> $HOME_NET $SMB_PORTS (msg:"ARCHIVIRT SMB Scan Detected"; threshold:type threshold, track by_src, count 5, seconds 10; classtype:network-scan; sid:2000050; rev:2;)
 
@@ -234,6 +251,22 @@
   ansible.builtin.shell: |
     ip link set {{ monitor_interface | default('ens4') }} promisc on
   changed_when: true
+
+- name: Configure iptables NFQUEUE for IPS mode
+  ansible.builtin.shell: |
+    iptables -I FORWARD -i ens3 -o ens3 -j NFQUEUE --queue-num 0
+    iptables -I INPUT -j NFQUEUE --queue-num 0
+    iptables -I OUTPUT -j NFQUEUE --queue-num 0
+  when: ids_mode | default('ids') == 'ips'
+  ignore_errors: yes
+
+- name: Remove iptables NFQUEUE rules for IDS mode
+  ansible.builtin.shell: |
+    iptables -D FORWARD -i ens3 -o ens3 -j NFQUEUE --queue-num 0 2>/dev/null || true
+    iptables -D INPUT -j NFQUEUE --queue-num 0 2>/dev/null || true
+    iptables -D OUTPUT -j NFQUEUE --queue-num 0 2>/dev/null || true
+  when: ids_mode | default('ids') == 'ids'
+  ignore_errors: yes
 
 - name: Configure Suricata to use correct interface
   ansible.builtin.replace:
