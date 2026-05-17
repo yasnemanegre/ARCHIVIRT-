@@ -265,7 +265,7 @@
 
 - name: Deploy Telegraf monitor-ids configuration
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../../monitoring/telegraf-monitor.conf"
+    src: "{{ archivirt_project_dir }}/monitoring/telegraf-monitor.conf"
     dest: /etc/telegraf/telegraf.conf
     owner: telegraf
     group: telegraf
