@@ -1,0 +1,175 @@
+
+%YAML 1.1
+---
+# ─────────────────────────────────────────────────────────
+# ARCHIVIRT Suricata 6 Configuration
+# Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+# ─────────────────────────────────────────────────────────
+
+vars:
+  address-groups:
+    HOME_NET: "[10.0.2.0/24]"
+    EXTERNAL_NET: "[10.0.4.0/24]"
+    HTTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    FTP_SERVERS: "$HOME_NET"
+    SSH_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SIP_SERVERS: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+    FTP_PORTS: 21
+    SMB_PORTS: "[139, 445]"
+
+default-log-dir: /var/log/suricata
+
+# Outputs
+outputs:
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve.json
+      types:
+        - alert:
+            payload: yes
+            payload-buffer-size: 4kb
+            http: yes
+            tls: yes
+            ssh: yes
+            smtp: yes
+            dnp3: yes
+            metadata: yes
+            tagged-packets: yes
+        - http:
+            extended: yes
+        - dns:
+            version: 2
+        - tls:
+            extended: yes
+        - ssh
+        - stats:
+            totals: yes
+            threads: no
+            deltas: no
+
+  - pcap-log:
+      enabled: yes
+      filename: archivirt-capture-%n.pcap
+      limit: 100mb
+      max-files: 10
+      mode: normal
+      dir: /var/log/suricata/pcap
+
+  - stats:
+      enabled: yes
+      filename: stats.log
+      totals: yes
+      threads: no
+
+# Application layer parsers
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+      libhtp:
+        default-config:
+          personality: IDS
+          request-body-limit: 100kb
+    ftp:
+      enabled: yes
+    ssh:
+      enabled: yes
+    smtp:
+      enabled: yes
+    tls:
+      enabled: yes
+    dns:
+      enabled: yes
+    http2:
+      enabled: yes
+
+# Multithreading (Suricata 6 advantage over Snort)
+threading:
+  set-cpu-affinity: no
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]
+    - receive-cpu-set:
+        cpu: [ 0 ]
+    - worker-cpu-set:
+        cpu: [ "all" ]
+        mode: "balanced"
+  detect-thread-ratio: 1.5
+
+# Detection engine
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+  prefilter:
+    default: mpm
+
+# Rules
+default-rule-path: /etc/suricata/rules
+
+rule-files:
+  - tls-events.rules
+  - stream-events.rules
+  - decoder-events.rules
+  - smtp-events.rules
+  - http-events.rules
+  - http2-events.rules
+  - dns-events.rules
+  - smb-events.rules
+  - kerberos-events.rules
+  - archivirt-local.rules
+
+# Host table
+host-mode: auto
+max-pending-packets: 1024
+runmode: autofp
+
+# Capture — IDS (af-packet) ou IPS (nfqueue)
+{% if ids_mode | default('ids') == 'ips' %}
+nfqueue:
+  mode: repeat
+  repeat-mark: 1
+  repeat-mask: 1
+  route-queue: 2
+  batchcount: 20
+{% else %}
+af-packet:
+  - interface: default
+    threads: auto
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    use-mmap: yes
+    tpacket-v3: yes
+    ring-size: 2048
+    block-size: 32768
+    block-timeout: 10
+    use-emergency-flush: yes
+
+pcap:
+  - interface: default
+    buffer-size: 16mb
+    bpf-filter: "not host {{ archivirt_host_ip }}"
+    checksum-checks: auto
+{% endif %}
+
+legacy:
+  uricontent: enabled
