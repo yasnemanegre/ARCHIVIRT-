@@ -66,6 +66,54 @@
     - telegraf
     - grafana-server
 
+
+- name: Wait for Grafana to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/health"
+    method: GET
+    status_code: 200
+  register: grafana_health
+  retries: 10
+  delay: 5
+  until: grafana_health.status == 200
+
+- name: Configure Grafana datasource InfluxDB
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/datasources"
+    method: POST
+    user: admin
+    password: admin
+    force_basic_auth: yes
+    body_format: json
+    body:
+      name: "InfluxDB-ARCHIVIRT"
+      type: "influxdb"
+      url: "http://10.0.5.10:8086"
+      access: "proxy"
+      jsonData:
+        version: "Flux"
+        organization: "archivirt"
+        defaultBucket: "archivirt-metrics"
+      secureJsonData:
+        token: "archivirt-telegraf-token"
+    status_code: [200, 409]
+  ignore_errors: yes
+
+- name: Import Grafana dashboard
+  ansible.builtin.uri:
+    url: "http://localhost:3000/api/dashboards/import"
+    method: POST
+    user: admin
+    password: admin
+    force_basic_auth: yes
+    body_format: json
+    body:
+      dashboard: "{{ lookup('file', archivirt_project_dir + '/monitoring/grafana/dashboard.json') | from_json }}"
+      overwrite: true
+      folderId: 0
+    status_code: [200, 412]
+  ignore_errors: yes
+
 - name: Print manager VM ready message
   ansible.builtin.debug:
     msg: |
