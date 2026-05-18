@@ -181,6 +181,9 @@ resource "libvirt_domain" "monitor" {
   name   = "archivirt-monitor-ids"
   vcpu   = var.vm_vcpu
   memory = var.vm_memory_mb
+  cpu {
+    mode = "host-passthrough"
+  }
 
   cloudinit = libvirt_cloudinit_disk.monitor.id
 
