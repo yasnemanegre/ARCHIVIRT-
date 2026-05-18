@@ -1,28 +1,31 @@
----
 # =============================================================================
-# ARCHIVIRT - Suricata 6.0.4 IDS Test Scenario Playbook
+# ARCHIVIRT - Suricata 6.0.4 IDS/IPS Test Scenario Playbook
 # =============================================================================
 # Author  : Yasnemanegre SAWADOGO (SPbSUT / SPbGUPTD)
 # License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 2.1.0 — 2026-05-11
+# Version : 2.2.0 — 2026-05-18
 #
 # Description:
-#   Runs a single attack scenario against Suricata 6.0.4 in passive IDS mode
-#   (workers runmode, AF-PACKET capture, eve.json output).
+#   Runs a single attack scenario against Suricata 6.0.4 in IDS or IPS mode.
 #   Called by run_all_scenarios.yml for each of SCN-001 to SCN-005.
 #
-# Variables (passed by master playbook):
+# Variables (passed via -e):
 #   scenario    : scenario ID, e.g. "SCN-001"  (default: SCN-001)
 #   ids_prefix  : IDS identifier prefix        (default: suricata)
+#   ids_mode    : "ids" or "ips"               (default: ids)
 #
 # Usage (standalone):
 #   ansible-playbook suricata_scenario.yml -i ansible/inventory/hosts.ini \
-#     -e "scenario=SCN-001 ids_prefix=suricata"
+#     -e "scenario=SCN-001 ids_prefix=suricata ids_mode=ids"
+#
+# FIX v2.2.0:
+#   Removed self-referencing vars blocks (scenario: "{{ scenario | default(...) }}")
+#   which caused infinite Jinja2 recursion. Variables are now resolved directly
+#   via set_fact at play start, breaking the recursive loop.
 #
 # IaC note:
-#   Attack start-time files are written as /tmp/{ids_prefix}_attack_start_times_{scenario}.txt
-#   to prevent Snort runs from overwriting Suricata timing data.
-#   Alert timestamps are parsed from eve.json (ISO 8601, UTC) by build_final_results.py.
+#   Attack start-time files: /tmp/{ids_prefix}_attack_start_times_{scenario}.txt
+#   Alert timestamps parsed from eve.json (ISO 8601, UTC) by build_final_results.py.
 # =============================================================================
 
 
@@ -34,10 +37,13 @@
   hosts: localhost
   connection: local
   gather_facts: no
-  vars:
-    scenario:   "{{ scenario   | default('SCN-001') }}"
-    ids_prefix: "{{ ids_prefix | default('suricata') }}"
   tasks:
+
+    - name: Resolve scenario and ids_prefix defaults
+      set_fact:
+        scn:    "{{ scenario   | default('SCN-001') }}"
+        pfx:    "{{ ids_prefix | default('suricata') }}"
+        mode:   "{{ ids_mode   | default('ids') }}"
 
     - name: Run archivirt_mirrors.sh
       shell: bash /home/archivirt/ARCHIVIRT/scripts/archivirt_mirrors.sh
@@ -57,11 +63,14 @@
 - name: ARCHIVIRT - Start Suricata on monitor
   hosts: monitor
   become: yes
-  vars:
-    scenario:          "{{ scenario   | default('SCN-001') }}"
-    ids_prefix:        "{{ ids_prefix | default('suricata') }}"
-    suricata_script:   /opt/archivirt/scripts/run_suricata.sh
   tasks:
+
+    - name: Resolve scenario and ids_prefix defaults
+      set_fact:
+        scn:             "{{ scenario   | default('SCN-001') }}"
+        pfx:             "{{ ids_prefix | default('suricata') }}"
+        mode:            "{{ ids_mode   | default('ids') }}"
+        suricata_script: /opt/archivirt/scripts/run_suricata.sh
 
     - name: Deploy run_suricata.sh
       copy:
@@ -80,52 +89,51 @@
       ignore_errors: yes
 
     - name: Stop any previous Suricata instance
-      shell: "bash {{ suricata_script }} stop {{ scenario }}"
+      shell: "bash {{ suricata_script }} stop {{ scn }}"
       ignore_errors: yes
 
-    - name: Start Suricata for scenario {{ scenario }}
-      shell: "bash {{ suricata_script }} start {{ scenario }}"
+    - name: "Start Suricata — scenario={{ scn }} mode={{ mode }}"
+      shell: "bash {{ suricata_script }} start {{ scn }} {{ mode }}"
 
 
 # -----------------------------------------------------------------------------
 # PLAY 3 — Execute the attack scenario on the attacker VM
-#
-# Each task writes iteration start-times to a prefixed file so that
-# build_final_results.py can correlate eve.json alerts to the correct IDS engine.
-# File pattern: /tmp/{ids_prefix}_attack_start_times_{scenario}.txt
 # -----------------------------------------------------------------------------
 
 - name: ARCHIVIRT - Run attack scenario
   hosts: attacker
   become: yes
-  vars:
-    scenario:   "{{ scenario   | default('SCN-001') }}"
-    ids_prefix: "{{ ids_prefix | default('suricata') }}"
   tasks:
+
+    - name: Resolve scenario and ids_prefix defaults
+      set_fact:
+        scn:  "{{ scenario   | default('SCN-001') }}"
+        pfx:  "{{ ids_prefix | default('suricata') }}"
+        mode: "{{ ids_mode   | default('ids') }}"
 
     # -- SCN-001 : Port Scan --------------------------------------------------
     - name: "SCN-001 Port Scan (nmap SYN, ports 1-1024, 10 iterations)"
       shell: |
-        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
+        > /tmp/{{ pfx }}_attack_start_times_SCN-001.txt
         for i in $(seq 1 10); do
-          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-001.txt
+          date -u +%s.%N >> /tmp/{{ pfx }}_attack_start_times_SCN-001.txt
           nmap -sS -Pn -p 1-1024 --min-rate 1000 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 -oN /dev/null 2>/dev/null
           sleep 5
         done
-      when: scenario == "SCN-001"
+      when: scn == "SCN-001"
 
     # -- SCN-002 : SSH Brute-force --------------------------------------------
     - name: "SCN-002 SSH Brute-force (nmap port 22, 10 iterations)"
       shell: |
-        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
+        > /tmp/{{ pfx }}_attack_start_times_SCN-002.txt
         for i in $(seq 1 10); do
-          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-002.txt
+          date -u +%s.%N >> /tmp/{{ pfx }}_attack_start_times_SCN-002.txt
           nmap -sS -Pn -p 22 --min-rate 500 -T4 \
             10.0.2.11 10.0.2.12 10.0.2.13 2>/dev/null
           sleep 5
         done
-      when: scenario == "SCN-002"
+      when: scn == "SCN-002"
 
     # -- SCN-003 : SQL Injection (DVWA) ---------------------------------------
     - name: "SCN-003 SQL Injection — get DVWA session cookie"
@@ -134,14 +142,14 @@
           --data 'username=admin&password=password&Login=Login' \
           | grep PHPSESSID | awk '{print $NF}'
       register: dvwa_cookie
-      when: scenario == "SCN-003"
+      when: scn == "SCN-003"
 
     - name: "SCN-003 SQL Injection — run sqlmap (10 iterations)"
       shell: |
-        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-003.txt
+        > /tmp/{{ pfx }}_attack_start_times_SCN-003.txt
         sqlmap --list-tampers > /dev/null 2>&1
         for i in $(seq 1 10); do
-          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-003.txt
+          date -u +%s.%N >> /tmp/{{ pfx }}_attack_start_times_SCN-003.txt
           sqlmap \
             -u "http://10.0.2.11/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
             --cookie="PHPSESSID={{ dvwa_cookie.stdout }};security=low" \
@@ -149,96 +157,96 @@
             --output-dir=/tmp/sqlmap_$i 2>/dev/null
           sleep 5
         done
-      when: scenario == "SCN-003"
+      when: scn == "SCN-003"
 
     # -- SCN-004 : DDoS Slowloris ---------------------------------------------
     - name: "SCN-004 DDoS Slowloris (150 sockets, 15 s, 10 iterations)"
       shell: |
-        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-004.txt
+        > /tmp/{{ pfx }}_attack_start_times_SCN-004.txt
         for i in $(seq 1 10); do
           timeout 20 python3 /opt/archivirt/attack-scripts/slowloris.py \
             10.0.2.11 --port 80 --sockets 150 --duration 15 2>/dev/null &
           SLPID=$!
           sleep 0.5
-          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-004.txt
+          date -u +%s.%N >> /tmp/{{ pfx }}_attack_start_times_SCN-004.txt
           wait $SLPID
           sleep 5
         done
-      when: scenario == "SCN-004"
+      when: scn == "SCN-004"
 
     # -- SCN-005 : Normal traffic baseline (FPR reference) -------------------
     - name: "SCN-005 Normal traffic baseline (HTTP GET, 10 iterations)"
       shell: |
-        > /tmp/{{ ids_prefix }}_attack_start_times_SCN-005.txt
+        > /tmp/{{ pfx }}_attack_start_times_SCN-005.txt
         for i in $(seq 1 10); do
-          date -u +%s.%N >> /tmp/{{ ids_prefix }}_attack_start_times_SCN-005.txt
+          date -u +%s.%N >> /tmp/{{ pfx }}_attack_start_times_SCN-005.txt
           curl -s http://10.0.2.11/ > /dev/null
           curl -s http://10.0.2.12/ > /dev/null
           sleep 3
         done
-      when: scenario == "SCN-005"
+      when: scn == "SCN-005"
 
     # -- Fetch prefixed start-time file to localhost -------------------------
     - name: Fetch attack start-time file to localhost
       fetch:
-        src:  "/tmp/{{ ids_prefix }}_attack_start_times_{{ scenario }}.txt"
-        dest: "/tmp/{{ ids_prefix }}_attack_start_times_{{ scenario }}.txt"
+        src:  "/tmp/{{ pfx }}_attack_start_times_{{ scn }}.txt"
+        dest: "/tmp/{{ pfx }}_attack_start_times_{{ scn }}.txt"
         flat: yes
-      when: scenario is defined
 
 
 # -----------------------------------------------------------------------------
 # PLAY 4 — Stop Suricata and collect results
-#
-# Alert count: parsed from fast.log (one line per alert, reliable counter).
-# Timestamps : fetched from eve.json (ISO 8601 UTC, parsed by build_final_results.py).
 # -----------------------------------------------------------------------------
 
 - name: ARCHIVIRT - Stop Suricata and collect results
   hosts: monitor
   become: yes
-  vars:
-    scenario:        "{{ scenario   | default('SCN-001') }}"
-    ids_prefix:      "{{ ids_prefix | default('suricata') }}"
-    suricata_script: /opt/archivirt/scripts/run_suricata.sh
   tasks:
+
+    - name: Resolve scenario and ids_prefix defaults
+      set_fact:
+        scn:             "{{ scenario   | default('SCN-001') }}"
+        pfx:             "{{ ids_prefix | default('suricata') }}"
+        mode:            "{{ ids_mode   | default('ids') }}"
+        suricata_script: /opt/archivirt/scripts/run_suricata.sh
 
     - name: Send SIGUSR2 to Suricata to force eve.json flush
       shell: "kill -USR2 $(pgrep -f 'suricata') 2>/dev/null || true"
       ignore_errors: yes
+
     - name: Wait for Suricata flush to complete
       pause:
         seconds: 5
 
     - name: Stop Suricata
-      shell: "bash {{ suricata_script }} stop {{ scenario }}"
+      shell: "bash {{ suricata_script }} stop {{ scn }}"
       ignore_errors: yes
 
     - name: Count alerts from fast.log
-      shell: "wc -l < /var/log/suricata/{{ scenario }}/fast.log"
+      shell: "wc -l < /var/log/suricata/{{ scn }}/fast.log"
       register: alert_count
 
     - name: Save per-scenario result to JSON
       copy:
         content: >
-          {"scenario":"{{ scenario }}","ids":"Suricata 6.0.4",
+          {"scenario":"{{ scn }}","ids":"Suricata 6.0.4","mode":"{{ mode }}",
           "alerts":{{ alert_count.stdout | trim | default(0) }},
           "date":"{{ ansible_date_time.date }}"}
-        dest: "/tmp/suricata_{{ scenario }}_result.json"
+        dest: "/tmp/suricata_{{ scn }}_result.json"
 
     - name: Fetch per-scenario result to localhost
       fetch:
-        src:  "/tmp/suricata_{{ scenario }}_result.json"
-        dest: "/tmp/suricata_{{ scenario }}_result.json"
+        src:  "/tmp/suricata_{{ scn }}_result.json"
+        dest: "/tmp/suricata_{{ scn }}_result.json"
         flat: yes
 
     - name: Fetch raw eve.json (ISO timestamps for DR/latency calculation)
       fetch:
-        src:  "/var/log/suricata/{{ scenario }}/eve.json"
-        dest: "/tmp/suricata_{{ scenario }}_alerts.json"
+        src:  "/var/log/suricata/{{ scn }}/eve.json"
+        dest: "/tmp/suricata_{{ scn }}_alerts.json"
         flat: yes
       ignore_errors: yes
 
-    - name: Show scenario result
+    - name: "Show scenario result — {{ scn }} ({{ mode }})"
       debug:
-        msg: "Suricata {{ scenario }}: {{ alert_count.stdout | trim }} alerts"
+        msg: "Suricata {{ scn }} [{{ mode }}]: {{ alert_count.stdout | trim }} alerts"

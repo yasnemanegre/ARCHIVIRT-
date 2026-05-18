@@ -1,23 +1,25 @@
 # ─────────────────────────────────────────────────────────────
 # ARCHIVIRT — Virtual Machine Definitions
-# Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+# Author: Yasnemanegre SAWADOGO (PhD Student, SPbSUITD)
 # ─────────────────────────────────────────────────────────────
 
 locals {
   ssh_pub_key = file(pathexpand(var.ssh_public_key_path))
 
-  # cloud-init common user-data template
+  # Common cloud-init user-data template shared across all VMs
+  # FIX: added ssh_pwauth + SHA-512 hash (var.ubuntu_password_hash) — plaintext password removed
   cloud_init_common = <<-EOF
     users:
       - name: ubuntu
         groups: sudo
         shell: /bin/bash
         sudo: ['ALL=(ALL) NOPASSWD:ALL']
+        passwd: ${var.ubuntu_password_hash}
+        lock_passwd: false
         ssh_authorized_keys:
           - ${local.ssh_pub_key}
+    ssh_pwauth: true
     chpasswd:
-      list: |
-        ubuntu:archivirt123
       expire: false
     package_update: false
   EOF
@@ -127,7 +129,7 @@ resource "libvirt_domain" "attacker" {
     addresses  = [var.ip_attacker]
   }
 
-  # Also connected to target network to reach targets directly
+  # Secondary interface on target network for direct attack reach
   network_interface {
     network_id = libvirt_network.targets.id
   }
@@ -194,11 +196,12 @@ resource "libvirt_domain" "monitor" {
     addresses  = [var.ip_monitor]
   }
 
-  # Tap interface connected to target network for passive monitoring
+  # Passive tap interface on target network for traffic mirroring
   network_interface {
     network_id = libvirt_network.targets.id
   }
-  # IPS inline interface connected to attack network
+
+  # Inline IPS interface on attack network
   network_interface {
     network_id = libvirt_network.attack.id
   }
@@ -240,12 +243,14 @@ resource "libvirt_cloudinit_disk" "target" {
     runcmd:
       - wget -q "http://10.0.2.1:8080/install_targets.sh" -O /tmp/install.sh && bash /tmp/install.sh
   EOF
+  # Static IP + dhcp-identifier:mac ensures consistent libvirt DHCP lease binding by MAC address
   network_config = <<-EOF
     version: 2
     ethernets:
       ens3:
         addresses: [${each.value.ip}/24]
         gateway4: 10.0.2.1
+        dhcp-identifier: mac
   EOF
 }
 

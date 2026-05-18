@@ -1,14 +1,25 @@
-# /etc/suricata/suricata.yaml – ARCHIVIRT (workers mode + af-packet)
+# =============================================================================
+# ARCHIVIRT — Suricata 6.0.4 configuration (workers mode + AF-PACKET)
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 2.1.0 — 2026-05-18
+#
+# Capture : AF-PACKET on ens4 (traffic mirror interface)
+# Runmode : workers (one thread per CPU core)
+# Rules   : ET Open ruleset (suricata.rules, downloaded by install_monitor.sh
+#           via suricata-update) + ARCHIVIRT event rules + local custom rules
+# =============================================================================
 %YAML 1.1
 ---
 
-# Runmode
+# --- Runmode -----------------------------------------------------------------
 runmode: workers
 
-# Default logging directory
+# --- Default logging directory -----------------------------------------------
 default-log-dir: /var/log/suricata
 
-# Configure af-packet capture for ens4
+# --- AF-PACKET capture on traffic mirror interface ---------------------------
 af-packet:
   - interface: ens4
     cluster-id: 99
@@ -19,9 +30,16 @@ af-packet:
     buffer-size: 64536
     disable-promisc: no
 
-# Rule management
+# --- Rule management ---------------------------------------------------------
+# suricata.rules     : ET Open ruleset (49778 rules enabled / 65629 total)
+#                      downloaded by suricata-update on host, served via local
+#                      apt mirror (http://10.0.3.1:8080/rules/suricata.rules)
+# *-events.rules     : Suricata built-in protocol/decoder event rules
+# archivirt-local.rules : custom ARCHIVIRT detection rules
 default-rule-path: /etc/suricata/rules
+
 rule-files:
+  - suricata.rules
   - tls-events.rules
   - stream-events.rules
   - decoder-events.rules
@@ -33,16 +51,17 @@ rule-files:
   - kerberos-events.rules
   - archivirt-local.rules
 
-# Classification and reference configs
+# --- Classification and reference configs ------------------------------------
 classification-file: /etc/suricata/classification.config
 reference-config-file: /etc/suricata/reference.config
 
-# Outputs
+# --- Outputs -----------------------------------------------------------------
 outputs:
   - fast:
       enabled: yes
       filename: fast.log
       append: no
+
   - eve-log:
       enabled: yes
       filename: eve.json
@@ -54,6 +73,6 @@ outputs:
       xff:
         enabled: no
 
-# Threading
+# --- Threading ---------------------------------------------------------------
 threading:
   detect-thread-ratio: 0.5

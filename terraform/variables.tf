@@ -1,5 +1,5 @@
 # ============================================================
-# ARCHIVIRT - Terraform Variables
+# ARCHIVIRT — Terraform Variables
 # Author: Yasnemanegre SAWADOGO (PhD Student, SPbSUITD)
 # ============================================================
 
@@ -17,7 +17,7 @@ variable "ip_target_01" { default = "10.0.2.11" }
 variable "ip_target_02" { default = "10.0.2.12" }
 variable "ip_target_03" { default = "10.0.2.13" }
 
-# --- VM Resources (per role) — chaque VM a sa propre variable RAM ---
+# --- VM Resources (per role) ---
 variable "vm_vcpu"          { default = 2    }
 variable "vm_disk_gb"       { default = 20   }
 variable "vm_ram_monitor"   { default = 2048 }
@@ -33,6 +33,15 @@ variable "ids_engine" { default = "suricata" }
 
 # --- SSH ---
 variable "ssh_public_key_path" { default = "~/.ssh/archivirt_key.pub" }
+
+# --- Authentication
+# Option A: SHA-512 hashed password — never store plaintext passwords in IaC
+# To regenerate: python3 -c "import crypt; print(crypt.crypt('PASSWORD', crypt.mksalt(crypt.METHOD_SHA512)))"
+variable "ubuntu_password_hash" {
+  description = "SHA-512 hash of the ubuntu user password. Required for console access via virsh."
+  type        = string
+  sensitive   = true
+}
 
 # --- Lab ---
 variable "lab_name"    { default = "archivirt-lab" }

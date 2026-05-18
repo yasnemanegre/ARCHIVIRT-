@@ -1,0 +1,66 @@
+# =============================================================================
+# ARCHIVIRT - Deploy IDS configuration and ET Open rules to monitor VM
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 1.0.0 — 2026-05-19
+#
+# Pushes all IDS configuration files and ET Open rules to the monitor VM.
+# Run this playbook after any change to configs/suricata/ or after
+# running scripts/update_et_rules.sh on the host.
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/deploy_ids_config.yml \
+#     -i ansible/inventory/hosts.ini
+# =============================================================================
+
+- name: ARCHIVIRT - Deploy IDS configuration and ET Open rules
+  hosts: monitor
+  become: yes
+  vars:
+    rules_src:    "/var/spool/apt-mirror/packages/rules/suricata.rules"
+    rules_dest:   "/etc/suricata/rules/suricata.rules"
+    config_src:   "/home/archivirt/ARCHIVIRT/configs/suricata/suricata.yaml"
+    config_dest:  "/etc/suricata/suricata.yaml"
+
+  tasks:
+
+    - name: Push Suricata configuration (suricata.yaml)
+      copy:
+        src:   "{{ config_src }}"
+        dest:  "{{ config_dest }}"
+        owner: root
+        group: root
+        mode:  "0644"
+
+    - name: Push ET Open rules (suricata.rules — 49778 rules)
+      copy:
+        src:   "{{ rules_src }}"
+        dest:  "{{ rules_dest }}"
+        owner: root
+        group: root
+        mode:  "0644"
+
+    - name: Verify rule count on monitor VM
+      shell: "grep -c '^alert' {{ rules_dest }}"
+      register: rule_count
+
+    - name: Validate Suricata configuration
+      shell: "suricata -T -c {{ config_dest }} 2>&1"
+      register: suricata_test
+
+    - name: Show validation result
+      debug:
+        msg:
+          - "Rules loaded: {{ rule_count.stdout }} signatures"
+          - "{{ suricata_test.stdout_lines | select('search', 'signatures|Notice|Error') | list }}"
+
+    - name: Fail if rule count too low
+      fail:
+        msg: "Rule count {{ rule_count.stdout }} is too low — check suricata.rules on host"
+      when: rule_count.stdout | int < 1000
+
+    - name: Fail if Suricata config invalid
+      fail:
+        msg: "Suricata configuration validation failed"
+      when: "'successfully loaded' not in suricata_test.stdout"
