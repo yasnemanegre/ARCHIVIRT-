@@ -28,6 +28,50 @@
 
 
 # -----------------------------------------------------------------------------
+# PRE-FLIGHT — Vérification et préparation de monitor-ids
+# -----------------------------------------------------------------------------
+- name: ARCHIVIRT - Pre-flight checks on monitor-ids
+  hosts: archivirt-monitor-ids
+  become: yes
+  tasks:
+    - name: Ensure /var/log/snort exists
+      ansible.builtin.file:
+        path: /var/log/snort
+        state: directory
+        mode: "0755"
+
+    - name: Ensure /opt/archivirt/scripts exists
+      ansible.builtin.file:
+        path: /opt/archivirt/scripts
+        state: directory
+        mode: "0755"
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Bring up monitoring interface ens4
+      ansible.builtin.shell: |
+        ip link set {{ monitor_interface | default('ens4') }} up 2>/dev/null || true
+      changed_when: false
+
+    - name: Ensure route monitor→manager exists
+      ansible.builtin.shell: |
+        ip route add 10.0.5.0/24 via 10.0.3.1 2>/dev/null || true
+      changed_when: false
+
+    - name: Ensure Suricata runs in af-packet mode (IDS)
+      ansible.builtin.lineinfile:
+        path: /lib/systemd/system/suricata.service
+        regexp: "^ExecStart="
+        line: "ExecStart=/usr/bin/suricata -D --af-packet -c /etc/suricata/suricata.yaml --pidfile /run/suricata.pid"
+      notify: reload systemd
+      when: ids_mode | default('ids') == 'ids'
+
+  handlers:
+    - name: reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+# -----------------------------------------------------------------------------
 # SNORT 3.12.2.0 — Scenarios SCN-001 to SCN-005
 # -----------------------------------------------------------------------------
 
