@@ -131,6 +131,7 @@
   ansible.builtin.shell: |
     pkill -f /usr/sbin/snort 2>/dev/null || true
   changed_when: false
+  ignore_errors: yes
 
 - name: Create snort_defaults.lua
   ansible.builtin.copy:
@@ -161,6 +162,14 @@
     path: /usr/local/etc/snort
     state: link
   ignore_errors: yes
+
+- name: Create Snort log directory
+  ansible.builtin.file:
+    path: /var/log/snort
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
 
 - name: Bring up monitoring interface ens4
   ansible.builtin.shell: |
