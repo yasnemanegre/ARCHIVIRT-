@@ -181,7 +181,6 @@
         -c /etc/snort3/snort.lua \
         -i {{ monitor_interface | default('ens4') }} \
         -l /var/log/snort \
-        -D \
         --daq pcap \
         --daq-mode passive
       Restart=on-failure
