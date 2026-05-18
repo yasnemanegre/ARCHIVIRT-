@@ -8,7 +8,6 @@ locals {
 
   # cloud-init common user-data template
   cloud_init_common = <<-EOF
-    #cloud-config
     users:
       - name: ubuntu
         groups: sudo
@@ -153,10 +152,11 @@ resource "libvirt_cloudinit_disk" "monitor" {
 
   user_data = <<-EOF
     #cloud-config
-        hostname: archivirt-monitor-ids
+    hostname: archivirt-monitor-ids
     ${local.cloud_init_common}
     runcmd:
       - wget -q "http://10.0.3.1:8080/install_monitor.sh" -O /tmp/install.sh && bash /tmp/install.sh
+  EOF
   network_config = <<-EOF
     version: 2
     ethernets:
