@@ -1,6 +1,6 @@
 # ============================================================
 # ARCHIVIRT - Terraform Variables
-# Author: Yasnemanegre SAWADOGO (PhD Student, SPbGUPTD)
+# Author: Yasnemanegre SAWADOGO (PhD Student, SPbSUITD)
 # ============================================================
 
 # --- Network CIDRs ---
@@ -17,16 +17,13 @@ variable "ip_target_01" { default = "10.0.2.11" }
 variable "ip_target_02" { default = "10.0.2.12" }
 variable "ip_target_03" { default = "10.0.2.13" }
 
-# --- VM Resources (per role) ---
+# --- VM Resources (per role) — chaque VM a sa propre variable RAM ---
 variable "vm_vcpu"          { default = 2    }
 variable "vm_disk_gb"       { default = 20   }
-variable "vm_ram_monitor"   { default = 1536 }
+variable "vm_ram_monitor"   { default = 2048 }
 variable "vm_ram_manager"   { default = 1536 }
 variable "vm_ram_attacker"  { default = 1024 }
-variable "vm_ram_target"    { default = 1024 }
-variable "vm_ram_target02"  { default = 768  }
-variable "vm_memory_mb"     { default = 1024 }
-variable "vm_ram"           { default = 1024 }
+variable "vm_ram_target"    { default = 768  }
 
 # --- Storage ---
 variable "storage_pool" { default = "default" }

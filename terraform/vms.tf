@@ -55,7 +55,7 @@ resource "libvirt_volume" "manager_disk" {
 resource "libvirt_domain" "manager" {
   name   = "archivirt-manager"
   vcpu   = var.vm_vcpu
-  memory = var.vm_memory_mb
+  memory = var.vm_ram_manager
 
   cloudinit = libvirt_cloudinit_disk.manager.id
 
@@ -116,7 +116,7 @@ resource "libvirt_volume" "attacker_disk" {
 resource "libvirt_domain" "attacker" {
   name   = "archivirt-attacker"
   vcpu   = var.vm_vcpu
-  memory = var.vm_memory_mb
+  memory = var.vm_ram_attacker
 
   cloudinit = libvirt_cloudinit_disk.attacker.id
 
@@ -180,7 +180,7 @@ resource "libvirt_volume" "monitor_disk" {
 resource "libvirt_domain" "monitor" {
   name   = "archivirt-monitor-ids"
   vcpu   = var.vm_vcpu
-  memory = var.vm_memory_mb
+  memory = var.vm_ram_monitor
   cpu {
     mode = "host-passthrough"
   }
@@ -260,7 +260,7 @@ resource "libvirt_domain" "target" {
 
   name   = each.value.hostname
   vcpu   = var.vm_vcpu
-  memory = var.vm_memory_mb
+  memory = var.vm_ram_target
 
   cloudinit = libvirt_cloudinit_disk.target[each.key].id
 
