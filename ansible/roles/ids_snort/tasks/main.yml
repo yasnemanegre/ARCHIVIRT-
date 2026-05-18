@@ -162,6 +162,11 @@
     state: link
   ignore_errors: yes
 
+- name: Bring up monitoring interface ens4
+  ansible.builtin.shell: |
+    ip link set {{ monitor_interface | default('ens4') }} up 2>/dev/null || true
+  changed_when: false
+
 - name: Set monitoring interface to promiscuous mode
   ansible.builtin.shell: |
     ip link set {{ monitor_interface | default('ens4') }} promisc on
