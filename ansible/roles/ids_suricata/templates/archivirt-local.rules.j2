@@ -1,8 +1,7 @@
 
-# ─────────────────────────────────────────────────────────
+# ---------------------------------------------------------
 # ARCHIVIRT Local Suricata 6 Rules
-# ─────────────────────────────────────────────────────────
-
+# ---------------------------------------------------------
 # Port Scan Detection (Nmap)
 alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap SYN Scan"; flags:S,12; threshold:type threshold, track by_src, count 20, seconds 2; classtype:network-scan; sid:2000001; rev:2;)
 alert tcp any any -> $HOME_NET any (msg:"ARCHIVIRT Nmap NULL Scan"; flags:0; sid:2000002; rev:2;)
@@ -28,7 +27,7 @@ alert http any any -> $HTTP_SERVERS $HTTP_PORTS (msg:"ARCHIVIRT Slowloris DDoS C
 # FTP Brute-force
 alert tcp any any -> $FTP_SERVERS $FTP_PORTS (msg:"ARCHIVIRT FTP Auth Brute-force"; flow:to_server,established; content:"PASS"; threshold:type threshold, track by_src, count 5, seconds 30; classtype:attempted-user; sid:2000040; rev:2;)
 
-# ── IPS DROP rules (actives si ids_mode=ips) ──
+# -- IPS DROP rules (actives si ids_mode=ips) --
 {% if ids_mode | default('ids') == 'ips' %}
 drop tcp any any -> $HOME_NET any (msg:"ARCHIVIRT IPS DROP Nmap SYN"; flags:S,12; threshold:type threshold, track by_src, count 50, seconds 2; sid:3000001; rev:1;)
 drop tcp any any -> $HOME_NET 22 (msg:"ARCHIVIRT IPS DROP SSH Brute"; flow:to_server,established; content:"SSH"; threshold:type both, track by_src, count 10, seconds 30; sid:3000010; rev:1;)
