@@ -32,10 +32,11 @@ resource "libvirt_cloudinit_disk" "manager" {
 
   user_data = <<-EOF
     #cloud-config
-        hostname: archivirt-manager
+    hostname: archivirt-manager
     ${local.cloud_init_common}
     runcmd:
       - wget -q "http://10.0.5.1:8080/install_manager.sh" -O /tmp/install.sh && bash /tmp/install.sh
+  EOF
   network_config = <<-EOF
     version: 2
     ethernets:
@@ -91,10 +92,11 @@ resource "libvirt_cloudinit_disk" "attacker" {
 
   user_data = <<-EOF
     #cloud-config
-        hostname: archivirt-attacker
+    hostname: archivirt-attacker
     ${local.cloud_init_common}
     runcmd:
       - wget -q "http://10.0.4.1:8080/install_attacker.sh" -O /tmp/install.sh && bash /tmp/install.sh
+  EOF
   network_config = <<-EOF
     version: 2
     ethernets:
@@ -233,10 +235,11 @@ resource "libvirt_cloudinit_disk" "target" {
 
   user_data = <<-EOF
     #cloud-config
-        hostname: ${each.value.hostname}
+    hostname: ${each.value.hostname}
     ${local.cloud_init_common}
     runcmd:
       - wget -q "http://10.0.2.1:8080/install_targets.sh" -O /tmp/install.sh && bash /tmp/install.sh
+  EOF
   network_config = <<-EOF
     version: 2
     ethernets:
