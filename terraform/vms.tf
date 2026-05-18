@@ -184,9 +184,6 @@ resource "libvirt_domain" "monitor" {
   cpu {
     mode = "host-passthrough"
   }
-  cpu {
-    mode = "host-passthrough"
-  }
 
   cloudinit = libvirt_cloudinit_disk.monitor.id
 
