@@ -110,3 +110,21 @@
 > - No σ values
 > - No statistical tests
 > - IPS claimed but not tested
+
+## [v3.3-wip] — 2026-05-18
+### En cours
+- Suricata regles ASCII corrigees (syntaxe Suricata 6)
+- cloud-init toutes VMs corrige (hostname indentation + EOF)
+- monitor-ids : 2GB RAM, 3 interfaces (ens3/ens4/ens5)
+- pre-flight checks dans run_all_scenarios.yml
+- Campagnes IPS Suricata : a lancer
+
+### Prochaines etapes
+1. Valider targets accessibles apres cloud-init
+2. Relancer campagnes IDS Suricata (0 alertes a corriger)
+3. Demonstration Grafana (tunnel Tailscale 100.65.253.128)
+   - Dashboard IDS : alertes/min, CPU, RAM
+   - Dashboard IPS : drops/min, blocked IPs
+4. Lancer campagnes IPS (ids_mode=ips)
+5. Tableau 5 IDS vs IPS dans l article
+6. Mise a jour article + push final GitHub
