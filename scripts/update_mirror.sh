@@ -33,3 +33,16 @@ fi
 dpkg-scanpackages . /dev/null 2>/dev/null | tee Packages > /dev/null
 gzip -k -f Packages
 echo "[ARCHIVIRT] Mirror: $(grep -c '^Package:' Packages) packages, $(du -sh . | cut -f1)"
+
+# --- Snort 3 Community rules -------------------------------------------------
+echo "[ARCHIVIRT] Downloading Snort 3 Community rules..."
+SNORT_RULES_URL="https://www.snort.org/downloads/community/snort3-community-rules.tar.gz"
+SNORT_RULES_DIR="$MIRROR_DIR/rules"
+mkdir -p "$SNORT_RULES_DIR"
+
+wget -q --timeout=60 "$SNORT_RULES_URL" -O /tmp/snort3-community.tar.gz && \
+  tar -xzf /tmp/snort3-community.tar.gz -C /tmp/ && \
+  cp /tmp/snort3-community-rules/snort3-community.rules \
+    "$SNORT_RULES_DIR/snort.rules" && \
+  echo "[ARCHIVIRT] Snort rules: $(wc -l < $SNORT_RULES_DIR/snort.rules) rules" || \
+  echo "[ARCHIVIRT] WARNING: Snort rules download failed"
