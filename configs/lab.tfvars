@@ -1,20 +1,10 @@
-lab_name            = "archivirt-lab"
-host_bridge         = "enp0s3"
-ubuntu_image_path   = "/var/lib/libvirt/images/ubuntu-22.04-server-cloudimg-amd64.img"
-net_targets_cidr    = "10.0.2.0/24"
-net_monitor_cidr    = "10.0.3.0/24"
-net_attack_cidr     = "10.0.4.0/24"
-net_manager_cidr    = "10.0.5.0/24"
-ip_manager          = "10.0.5.10"
-ip_attacker         = "10.0.4.10"
-ip_monitor          = "10.0.3.10"
-ip_target_01        = "10.0.2.11"
-ip_target_02        = "10.0.2.12"
-ip_target_03        = "10.0.2.13"
-vm_vcpu             = 2
-vm_ram_monitor      = 768
-vm_ram_manager      = 1024
-vm_ram_attacker     = 512
-vm_ram_target       = 512
-vm_ram_target02     = 384
-vm_disk_gb          = 20
+# ============================================================
+# ARCHIVIRT — Lab Configuration
+# WARNING: This file contains a sensitive password hash.
+# Never commit this file to git (already covered by .gitignore).
+# ============================================================
+
+# SHA-512 hash of "archivirt123"
+# To regenerate after a password change:
+#   python3 -c "import crypt; print(crypt.crypt('NEW_PASSWORD', crypt.mksalt(crypt.METHOD_SHA512)))"
+ubuntu_password_hash = "$6$ENPzC0HGH2pj82Z7$80hwxAQPCaZ1sytrzOaEqMdiyeO89halRBaiQlfPW3vGUoYK7jbRKRnOhLUTKAgNjE.THa6Mzi9Nrxexb4LdG0"
