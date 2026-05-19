@@ -1,0 +1,97 @@
+# =============================================================================
+# ARCHIVIRT - OVS Bridge Setup on Host
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 1.0.0 — 2026-05-19
+#
+# Creates OVS bridges on the host before terraform apply.
+# Must be run once before deploying the lab, and after any host reboot.
+#
+# Ansible manages host system config (OVS bridges).
+# Terraform manages VM infrastructure (libvirt resources).
+# This separation follows IaC best practices.
+#
+# Usage:
+#   ansible-playbook ansible/playbooks/setup_ovs.yml \
+#     -i ansible/inventory/hosts.ini
+#
+# Run order:
+#   1. ansible-playbook setup_ovs.yml        ← this playbook
+#   2. terraform apply                        ← deploy VMs
+#   3. ansible-playbook run_all_scenarios.yml ← run campaigns
+# =============================================================================
+
+- name: ARCHIVIRT - Create OVS bridges on host
+  hosts: localhost
+  connection: local
+  become: yes
+  gather_facts: no
+
+  vars:
+    ovs_bridges:
+      - name: ovs-targets
+        ip:   "10.0.2.1/24"
+      - name: ovs-monitor
+        ip:   "10.0.3.1/24"
+      - name: ovs-attack
+        ip:   "10.0.4.1/24"
+
+  tasks:
+
+    - name: Ensure openvswitch-switch is running
+      systemd:
+        name: openvswitch-switch
+        state: started
+        enabled: yes
+
+    - name: Verify OVS is operational
+      command: ovs-vsctl show
+      register: ovs_status
+      changed_when: false
+
+    - name: Create OVS bridges (idempotent)
+      command: "ovs-vsctl --may-exist add-br {{ item.name }}"
+      loop: "{{ ovs_bridges }}"
+      register: bridge_create
+
+    - name: Assign gateway IPs to OVS bridges
+      command: "ip addr replace {{ item.ip }} dev {{ item.name }}"
+      loop: "{{ ovs_bridges }}"
+      ignore_errors: yes
+
+    - name: Bring up OVS bridge interfaces
+      command: "ip link set {{ item.name }} up"
+      loop: "{{ ovs_bridges }}"
+
+    - name: Verify all bridges are up
+      command: "ip link show {{ item.name }}"
+      loop: "{{ ovs_bridges }}"
+      register: bridge_status
+      changed_when: false
+
+    - name: Show OVS topology
+      command: ovs-vsctl show
+      register: ovs_topology
+      changed_when: false
+
+    - name: OVS bridge status
+      debug:
+        msg: "{{ ovs_topology.stdout_lines }}"
+
+    - name: Show bridge IPs
+      command: ip addr show
+      register: ip_status
+      changed_when: false
+
+    - name: Confirm gateway IPs
+      debug:
+        msg: "{{ ip_status.stdout_lines | select('search', '10.0.[2345].1') | list }}"
+
+    - name: Summary
+      debug:
+        msg:
+          - "✅ OVS bridges ready — run terraform apply next"
+          - "   ovs-targets  → 10.0.2.1/24"
+          - "   ovs-monitor  → 10.0.3.1/24"
+          - "   ovs-attack   → 10.0.4.1/24"

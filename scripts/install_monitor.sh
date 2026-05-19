@@ -4,7 +4,7 @@
 # =============================================================================
 # Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
 # License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 2.3.0 — 2026-05-19
+# Version : 2.4.0 — 2026-05-19
 #
 # IaC Option B: all packages and rules served from local apt mirror only.
 # The monitor VM has NO direct internet access.
@@ -23,11 +23,10 @@ set -e
 MIRROR="http://10.0.3.1:8080"
 RULES_URL="${MIRROR}/rules/suricata.rules"
 RULES_DEST="/etc/suricata/rules/suricata.rules"
+SCRIPTS_DIR="/opt/archivirt/scripts"
 
 # --- Configure local apt mirror as sole source -------------------------------
 echo "deb [trusted=yes] $MIRROR ./" > /etc/apt/sources.list.d/archivirt-local.list
-
-# Disable default Ubuntu sources to enforce local-only installs
 echo "" > /etc/apt/sources.list
 
 apt-get update \
@@ -43,8 +42,11 @@ apt-get install -y --no-install-recommends \
 echo "[ARCHIVIRT] $(suricata --build-info 2>/dev/null | grep 'This is Suricata' || echo 'suricata OK')"
 echo "[ARCHIVIRT] $(which suricata-update && echo 'suricata-update OK')"
 
+# --- Create ARCHIVIRT scripts directory --------------------------------------
+mkdir -p "$SCRIPTS_DIR"
+echo "[ARCHIVIRT] Scripts directory: $SCRIPTS_DIR"
+
 # --- Download ET Open rules from local mirror --------------------------------
-# Rules are pre-generated on host by scripts/update_et_rules.sh
 echo "[ARCHIVIRT] Fetching ET Open rules from local mirror ..."
 mkdir -p /etc/suricata/rules
 
@@ -60,7 +62,13 @@ if [ "$RULE_COUNT" -lt 1000 ]; then
   exit 1
 fi
 
+# --- Create empty archivirt-local.rules (custom rules placeholder) -----------
+touch /etc/suricata/rules/archivirt-local.rules
+echo "[ARCHIVIRT] archivirt-local.rules created (empty placeholder)"
+
 # --- Validate final Suricata configuration -----------------------------------
 echo "[ARCHIVIRT] Validating Suricata configuration ..."
 suricata -T -c /etc/suricata/suricata.yaml 2>&1 | tail -5
 echo "[ARCHIVIRT] Monitor installation complete."
+echo "[ARCHIVIRT] NOTE: Suricata takes ~100s to load 50068 rules on 2 vCPU."
+echo "[ARCHIVIRT] run_suricata.sh will be deployed by Ansible playbook."

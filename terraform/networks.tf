@@ -1,73 +1,70 @@
-# ─────────────────────────────────────────────────────────────
-# ARCHIVIRT — Virtual Network Definitions
-# Author: Яснеманегре САВАДОГО (Аспирант СПБГУПТД)
+# =============================================================================
+# ARCHIVIRT — Virtual Network Definitions (OVS-based)
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 3.0.0 — 2026-05-19
 #
-# Networks:
-#   archivirt-net-targets  → 10.0.2.0/24  Target VMs
-#   archivirt-net-monitor  → 10.0.3.0/24  IDS/IPS Monitor
-#   archivirt-net-attack   → 10.0.4.0/24  Attacker VM
-#   archivirt-net-manager  → 10.0.5.0/24  Manager VM
-# ─────────────────────────────────────────────────────────────
+# Networks use Open vSwitch (OVS) bridges for native port mirroring support.
+# OVS bridges must be created BEFORE terraform apply via:
+#   ansible-playbook ansible/playbooks/setup_ovs.yml -i ansible/inventory/hosts.ini
+#
+# Bridge mapping:
+#   ovs-targets  → 10.0.2.0/24  Target VMs     (port mirror source)
+#   ovs-monitor  → 10.0.3.0/24  IDS/IPS Monitor
+#   ovs-attack   → 10.0.4.0/24  Attacker VM    (port mirror source)
+#   ovs-manager  → 10.0.5.0/24  Manager VM     (NAT, standard libvirt)
+#
+# Port mirror: ovs-targets + ovs-attack → monitor capture port (ens4)
+# Configured at runtime by scripts/archivirt_mirrors.sh via ovs-vsctl
+# =============================================================================
 
-# ─── Target Network (10.0.2.0/24) ────────────────────────────
+# --- Target Network (10.0.2.0/24) — OVS bridge ovs-targets ------------------
 resource "libvirt_network" "targets" {
   name      = "archivirt-net-targets"
-  mode      = "none"   # fully isolated — no NAT to host
-  addresses = [var.net_targets_cidr]
+  mode      = "bridge"
+  bridge    = "ovs-targets"
   autostart = true
 
-  dhcp {
-    enabled = false   # static IPs assigned via cloud-init
-  }
-
-  dns {
-    enabled = false
+  xml {
+    xslt = file("${path.module}/xslt/ovs-network.xslt")
   }
 }
 
-# ─── Monitor Network (10.0.3.0/24) ───────────────────────────
+# --- Monitor Network (10.0.3.0/24) — OVS bridge ovs-monitor -----------------
 resource "libvirt_network" "monitor" {
   name      = "archivirt-net-monitor"
-  mode      = "none"
-  addresses = [var.net_monitor_cidr]
+  mode      = "bridge"
+  bridge    = "ovs-monitor"
   autostart = true
 
-  dhcp {
-    enabled = false
-  }
-
-  dns {
-    enabled = false
+  xml {
+    xslt = file("${path.module}/xslt/ovs-network.xslt")
   }
 }
 
-# ─── Attack Network (10.0.4.0/24) ────────────────────────────
+# --- Attack Network (10.0.4.0/24) — OVS bridge ovs-attack -------------------
 resource "libvirt_network" "attack" {
   name      = "archivirt-net-attack"
-  mode      = "none"
-  addresses = [var.net_attack_cidr]
+  mode      = "bridge"
+  bridge    = "ovs-attack"
   autostart = true
 
-  dhcp {
-    enabled = false
-  }
-
-  dns {
-    enabled = false
+  xml {
+    xslt = file("${path.module}/xslt/ovs-network.xslt")
   }
 }
 
-# ─── Manager Network (10.0.5.0/24) ───────────────────────────
+# --- Manager Network (10.0.5.0/24) — standard libvirt NAT -------------------
+# Manager needs external access for package installs — kept as libvirt NAT
 resource "libvirt_network" "manager" {
   name      = "archivirt-net-manager"
-  mode      = "nat"   # manager needs external access for package installs
+  mode      = "nat"
   addresses = [var.net_manager_cidr]
   autostart = true
-
   dhcp {
     enabled = false
   }
-
   dns {
     enabled = true
   }

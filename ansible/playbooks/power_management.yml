@@ -1,0 +1,136 @@
+# =============================================================================
+# ARCHIVIRT - VM Power Management Playbook
+# =============================================================================
+# Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
+# License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
+# Version : 1.0.0 — 2026-05-19
+#
+# Manages VM power state according to ARCHIVIRT pipeline phases.
+# Each phase only keeps necessary VMs running to optimize host RAM usage.
+#
+# Usage:
+#   ansible-playbook power_management.yml -e "phase=ids"
+#   ansible-playbook power_management.yml -e "phase=ips"
+#   ansible-playbook power_management.yml -e "phase=analysis"
+#   ansible-playbook power_management.yml -e "phase=setup"
+#   ansible-playbook power_management.yml -e "phase=all_on"
+#   ansible-playbook power_management.yml -e "phase=all_off"
+#
+# Phase definitions:
+#   setup    : manager ON  | attacker OFF | targets OFF | monitor OFF
+#   ids      : manager OFF | attacker ON  | targets ON  | monitor ON
+#   ips      : manager OFF | attacker ON  | targets ON  | monitor ON
+#   analysis : manager ON  | attacker OFF | targets OFF | monitor ON
+#   all_on   : all VMs ON
+#   all_off  : all VMs OFF (graceful shutdown)
+#
+# RAM savings per phase (host has 6.8GB total):
+#   ids/ips  : saves ~1536MB (manager) = more headroom for capture
+#   analysis : saves ~1024MB (attacker) + ~2304MB (3x targets)
+# =============================================================================
+
+- name: ARCHIVIRT - VM Power Management
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    _phase: "{{ phase | default('ids') }}"
+
+    # VM definitions with RAM profile
+    vms:
+      manager:  { name: archivirt-manager,    ram_mb: 1536 }
+      attacker: { name: archivirt-attacker,   ram_mb: 1024 }
+      monitor:  { name: archivirt-monitor-ids, ram_mb: 2048 }
+      target01: { name: archivirt-target-01,  ram_mb: 768  }
+      target02: { name: archivirt-target-02,  ram_mb: 768  }
+      target03: { name: archivirt-target-03,  ram_mb: 768  }
+
+    # Phase power profiles: true = ON, false = OFF
+    phases:
+      setup:
+        manager:  true
+        attacker: false
+        monitor:  false
+        target01: false
+        target02: false
+        target03: false
+      ids:
+        manager:  false
+        attacker: true
+        monitor:  true
+        target01: true
+        target02: true
+        target03: true
+      ips:
+        manager:  false
+        attacker: true
+        monitor:  true
+        target01: true
+        target02: true
+        target03: true
+      analysis:
+        manager:  true
+        attacker: false
+        monitor:  true
+        target01: false
+        target02: false
+        target03: false
+      all_on:
+        manager:  true
+        attacker: true
+        monitor:  true
+        target01: true
+        target02: true
+        target03: true
+      all_off:
+        manager:  false
+        attacker: false
+        monitor:  false
+        target01: false
+        target02: false
+        target03: false
+
+  tasks:
+
+    - name: Validate phase parameter
+      fail:
+        msg: "Invalid phase '{{ _phase }}'. Valid: setup, ids, ips, analysis, all_on, all_off"
+      when: _phase not in phases
+
+    - name: Show power plan for phase {{ _phase }}
+      debug:
+        msg: "Phase {{ _phase }} — {{ phases[_phase] }}"
+
+    - name: Start VMs required for phase {{ _phase }}
+      shell: "virsh start {{ vms[item.key].name }} 2>/dev/null || true"
+      loop: "{{ phases[_phase] | dict2items }}"
+      when: item.value | bool
+      register: start_results
+
+    - name: Shutdown VMs not required for phase {{ _phase }}
+      shell: "virsh shutdown {{ vms[item.key].name }} 2>/dev/null || true"
+      loop: "{{ phases[_phase] | dict2items }}"
+      when: not (item.value | bool)
+      register: stop_results
+
+    - name: Wait for shutdown to complete
+      pause:
+        seconds: 15
+      when: _phase != 'all_on'
+
+    - name: Show VM states after power management
+      shell: "virsh list --all | grep archivirt"
+      register: vm_states
+
+    - name: VM states
+      debug:
+        msg: "{{ vm_states.stdout_lines }}"
+
+    - name: Show available RAM
+      shell: "free -h | grep Mem"
+      register: ram_state
+
+    - name: RAM available
+      debug:
+        msg: "{{ ram_state.stdout }}"

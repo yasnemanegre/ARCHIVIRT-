@@ -44,21 +44,16 @@ vars:
     TEREDO_PORTS:    3544
 
 # --- Runmode -----------------------------------------------------------------
-runmode: workers
+runmode: single
 
 # --- Default logging directory -----------------------------------------------
 default-log-dir: /var/log/suricata
 
 # --- AF-PACKET capture on traffic mirror interface ---------------------------
-af-packet:
+pcap:
   - interface: ens4
-    cluster-id: 99
-    cluster-type: cluster_flow
-    defrag: yes
-    use-mmap: yes
-    ring-size: 200000
-    buffer-size: 64536
-    disable-promisc: no
+    promisc: yes
+    snaplen: 65535
 
 # --- Rule management ---------------------------------------------------------
 # suricata.rules     : ET Open ruleset (49778 rules enabled / 65629 total)
