@@ -37,7 +37,44 @@ apt-get update \
 # --- Install IDS packages from local mirror ----------------------------------
 apt-get install -y --no-install-recommends \
   -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/archivirt-local.list \
-  snort3 suricata suricata-update 2>&1 | tail -5
+  snort3 suricata suricata-update \
+  libdumbnet1 libhwloc15 libdaq2 libhyperscan5 2>&1 | tail -5
+
+# --- Create Snort 3 configuration directory ----------------------------------
+echo "[ARCHIVIRT] Configuring Snort 3..."
+mkdir -p /etc/snort3/rules
+
+cat > /etc/snort3/snort.lua << 'SNORTEOF'
+-- ARCHIVIRT Snort 3.1.74.0 configuration
+-- IDS passive mode on ens4 (OVS mirror interface)
+HOME_NET = '10.0.0.0/8'
+EXTERNAL_NET = '!$HOME_NET'
+ips = {
+  enable_builtin_rules = true,
+  rules = [[include /etc/snort3/rules/snort.rules]]
+}
+alert_fast = { file = true, packet = false }
+alert_json = { file = true, limit = 100 }
+SNORTEOF
+
+# Download Snort Community rules from local mirror
+wget -q http://10.0.3.1:8080/rules/snort.rules \
+  -O /etc/snort3/rules/snort.rules 2>/dev/null || \
+  touch /etc/snort3/rules/snort.rules
+touch /etc/snort3/rules/archivirt.rules
+
+# Create snort_defaults.lua
+mkdir -p /usr/local/etc/snort
+cat > /usr/local/etc/snort/snort_defaults.lua << DEFAULTSEOF
+HOME_NET = '10.0.0.0/8'
+EXTERNAL_NET = '!$HOME_NET'
+HTTP_SERVERS = '$HOME_NET'
+SQL_SERVERS = '$HOME_NET'
+SSH_SERVERS = '$HOME_NET'
+HTTP_PORTS = '80'
+SSH_PORTS = 22
+DEFAULTSEOF
+echo "[ARCHIVIRT] $(ls /etc/snort3/rules/snort.rules && echo 'Snort rules OK')" 
 
 echo "[ARCHIVIRT] $(suricata --build-info 2>/dev/null | grep 'This is Suricata' || echo 'suricata OK')"
 echo "[ARCHIVIRT] $(which suricata-update && echo 'suricata-update OK')"

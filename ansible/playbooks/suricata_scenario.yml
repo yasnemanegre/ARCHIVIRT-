@@ -3,11 +3,15 @@
 # =============================================================================
 # Author  : Yasnemanegre SAWADOGO (SPbGUPTD)
 # License : MIT — https://github.com/yasnemanegre/ARCHIVIRT
-# Version : 2.3.0 — 2026-05-19
+# Version : 2.4.0 — 2026-05-19
 #
 # Description:
 #   Runs a single attack scenario against Suricata 6.0.4 in IDS or IPS mode.
 #   Called by run_all_scenarios.yml for each of SCN-001 to SCN-005.
+#
+# KEY OPTIMIZATION: Suricata is NOT restarted between scenarios if already
+#   running. Rule loading takes ~80s on 2 vCPU — restarting 5 times = 400s
+#   wasted. Instead, Suricata stays alive and logs are rotated per scenario.
 #
 # Variables (passed via -e):
 #   scenario    : scenario ID, e.g. "SCN-001"  (default: SCN-001)
@@ -17,11 +21,6 @@
 # Usage (standalone):
 #   ansible-playbook suricata_scenario.yml -i ansible/inventory/hosts.ini \
 #     -e "scenario=SCN-001 ids_prefix=suricata ids_mode=ids"
-#
-# FIX v2.3.0:
-#   - Removed self-referencing vars blocks (infinite Jinja2 recursion fix)
-#   - Replaced fixed sleep with wait_for AFP threads detection (deterministic)
-#   - Variables resolved via set_fact at play start
 # =============================================================================
 
 
@@ -56,7 +55,7 @@
 # PLAY 2 — Deploy and start Suricata 6.0.4 on the monitor VM
 # -----------------------------------------------------------------------------
 
-- name: ARCHIVIRT - Start Suricata on monitor
+- name: ARCHIVIRT - Start Suricata on monitor (reuse if running)
   hosts: monitor
   become: yes
   tasks:
@@ -84,25 +83,40 @@
       delegate_to: localhost
       ignore_errors: yes
 
-    - name: Stop any previous Suricata instance
+    - name: Check if Suricata is already running
+      shell: "pgrep -f 'suricata.*pcap\\|suricata.*ens4' || echo 'not_running'"
+      register: suricata_running
+      changed_when: false
+
+    - name: Stop any previous Suricata instance (first run only)
       shell: "bash {{ suricata_script }} stop {{ scn }}"
       ignore_errors: yes
+      when: suricata_running.stdout == 'not_running'
 
-    - name: "Start Suricata — scenario={{ scn }} mode={{ mode }}"
+    - name: "Start Suricata — scenario={{ scn }} mode={{ mode }} (first run only)"
       shell: "bash {{ suricata_script }} start {{ scn }} {{ mode }}"
+      when: suricata_running.stdout == 'not_running'
 
-    # Deterministic wait: poll log until AFP threads are confirmed running
-    - name: Wait for Suricata AFP capture threads to be ready
+    - name: Wait for Suricata to be ready (first run only)
       wait_for:
         path:         "/var/log/suricata/{{ scn }}/suricata_stdout.log"
         search_regex: "engine started"
         timeout:      300
         delay:        5
-      register: afp_ready
+      when: suricata_running.stdout == 'not_running'
+
+    - name: Rotate Suricata logs for new scenario (subsequent runs)
+      shell: |
+        mkdir -p /var/log/suricata/{{ scn }}
+        truncate -s 0 /var/log/suricata/{{ scn }}/fast.log 2>/dev/null || true
+        truncate -s 0 /var/log/suricata/{{ scn }}/eve.json 2>/dev/null || true
+        kill -USR2 $(pgrep -f suricata) 2>/dev/null || true
+      when: suricata_running.stdout != 'not_running'
+      ignore_errors: yes
 
     - name: Confirm Suricata is capturing
       debug:
-        msg: "Suricata AFP threads ready — scenario={{ scn }} mode={{ mode }}"
+        msg: "Suricata ready — scenario={{ scn }} mode={{ mode }} (reused={{ suricata_running.stdout != 'not_running' }})"
 
 
 # -----------------------------------------------------------------------------
@@ -183,7 +197,7 @@
       when: scn == "SCN-004"
 
     # -- SCN-005 : Normal traffic baseline (FPR reference) -------------------
-    - name: "SCN-005 Normal traffic baseline (tcpreplay, 10 iterations)"
+    - name: "SCN-005 Normal traffic baseline (curl HTTP, 10 iterations)"
       shell: |
         > /tmp/{{ pfx }}_attack_start_times_SCN-005.txt
         for i in $(seq 1 10); do
@@ -203,10 +217,10 @@
 
 
 # -----------------------------------------------------------------------------
-# PLAY 4 — Stop Suricata and collect results
+# PLAY 4 — Collect results (Suricata keeps running between scenarios)
 # -----------------------------------------------------------------------------
 
-- name: ARCHIVIRT - Stop Suricata and collect results
+- name: ARCHIVIRT - Collect results (no Suricata stop between scenarios)
   hosts: monitor
   become: yes
   tasks:
@@ -218,20 +232,16 @@
         mode:            "{{ ids_mode   | default('ids') }}"
         suricata_script: /opt/archivirt/scripts/run_suricata.sh
 
-    - name: Send SIGUSR2 to Suricata to force eve.json flush
-      shell: "kill -USR2 $(pgrep -f 'suricata') 2>/dev/null || true"
+    - name: Send SIGUSR2 to flush eve.json
+      shell: "kill -USR2 $(pgrep -f suricata) 2>/dev/null || true"
       ignore_errors: yes
 
-    - name: Wait for Suricata flush
+    - name: Wait for flush
       pause:
         seconds: 5
 
-    - name: Stop Suricata
-      shell: "bash {{ suricata_script }} stop {{ scn }}"
-      ignore_errors: yes
-
     - name: Count alerts from fast.log
-      shell: "wc -l < /var/log/suricata/{{ scn }}/fast.log"
+      shell: "wc -l < /var/log/suricata/{{ scn }}/fast.log 2>/dev/null || echo 0"
       register: alert_count
 
     - name: Save per-scenario result to JSON
@@ -258,3 +268,8 @@
     - name: "Show scenario result — {{ scn }} ({{ mode }})"
       debug:
         msg: "Suricata {{ scn }} [{{ mode }}]: {{ alert_count.stdout | trim }} alerts"
+
+    - name: Stop Suricata after LAST scenario only
+      shell: "bash {{ suricata_script }} stop {{ scn }}"
+      when: scn == "SCN-005"
+      ignore_errors: yes
