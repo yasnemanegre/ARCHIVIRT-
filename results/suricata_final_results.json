@@ -6,34 +6,34 @@
       "alerts": 149,
       "detection_rate": 100.0,
       "latency_ms": 484.6,
-      "false_positive": 15.23
+      "false_positive": 9.27
     },
     "SCN-002": {
-      "alerts": 0,
-      "detection_rate": 0.0,
-      "latency_ms": 0.0,
-      "false_positive": 15.23
+      "alerts": 991,
+      "detection_rate": 80.0,
+      "latency_ms": 451.4,
+      "false_positive": 9.27
     },
     "SCN-003": {
       "alerts": 162,
       "detection_rate": 100.0,
       "latency_ms": 685.5,
-      "false_positive": 15.23
+      "false_positive": 9.27
     },
     "SCN-004": {
       "alerts": 997,
       "detection_rate": 100.0,
       "latency_ms": 1125.7,
-      "false_positive": 15.23
+      "false_positive": 9.27
     },
     "SCN-005": {
       "alerts": 235,
       "detection_rate": "N/A",
       "latency_ms": "N/A",
-      "false_positive": 15.23
+      "false_positive": 9.27
     }
   },
-  "total_alerts": 1543,
+  "total_alerts": 2534,
   "performance": {
     "latency_ms": 0.834,
     "snort_cpu": 1.6,

@@ -89,4 +89,19 @@ echo "  sqlmap:   $(sqlmap --version 2>/dev/null | head -1 || echo 'NOT FOUND')"
 echo "  hydra:    $(hydra -V 2>/dev/null | head -1 || echo 'NOT FOUND')"
 echo "  hping3:   $(which hping3 && echo 'OK' || echo 'NOT FOUND')"
 echo "  tcpreplay:$(tcpreplay --version 2>/dev/null | head -1 || echo 'NOT FOUND')"
+# --- Create SSH brute-force wordlist -----------------------------------------
+mkdir -p /usr/share/wordlists
+cat > /usr/share/wordlists/rockyou.txt << WORDLIST
+password
+123456
+admin
+root
+archivirt123
+test
+password123
+letmein
+qwerty
+12345678
+WORDLIST
+echo "[ARCHIVIRT] wordlist created: $(wc -l < /usr/share/wordlists/rockyou.txt) passwords"
 echo "[ARCHIVIRT] Attacker installation complete."
