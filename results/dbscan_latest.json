@@ -1,12 +1,12 @@
 {
-  "date": "2026-05-19T18:04:46.842634",
+  "date": "2026-05-19T18:13:16.994779",
   "snort_dbscan": {
-    "clusters": 8,
-    "anomalies": 7,
-    "anomaly_rate": 0.23
+    "clusters": 12,
+    "anomalies": 4,
+    "anomaly_rate": 0.13
   },
   "suricata_dbscan": {
-    "clusters": 7,
+    "clusters": 9,
     "anomalies": 0,
     "anomaly_rate": 0.0
   }

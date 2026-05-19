@@ -17,7 +17,7 @@
           "ids": "Suricata 6.0.4",
           "alerts": 149,
           "detection": 100.0,
-          "fpr": 15.23,
+          "fpr": 9.27,
           "latency": 484.6
         }
       },
@@ -32,10 +32,10 @@
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 0,
-          "detection": 0.0,
-          "fpr": 15.23,
-          "latency": 0.0
+          "alerts": 991,
+          "detection": 80.0,
+          "fpr": 9.27,
+          "latency": 451.4
         }
       },
       {
@@ -51,7 +51,7 @@
           "ids": "Suricata 6.0.4",
           "alerts": 162,
           "detection": 100.0,
-          "fpr": 15.23,
+          "fpr": 9.27,
           "latency": 685.5
         }
       },
@@ -68,7 +68,7 @@
           "ids": "Suricata 6.0.4",
           "alerts": 997,
           "detection": 100.0,
-          "fpr": 15.23,
+          "fpr": 9.27,
           "latency": 1125.7
         }
       },
@@ -85,7 +85,7 @@
           "ids": "Suricata 6.0.4",
           "alerts": 235,
           "detection": "N/A",
-          "fpr": 15.23,
+          "fpr": 9.27,
           "latency": "N/A"
         }
       }
@@ -103,7 +103,7 @@
       },
       {
         "ids": "Suricata 6.0.4",
-        "total_alerts": 1543,
+        "total_alerts": 2534,
         "cpu": 7.7,
         "ram": 46,
         "mbit": 1120
@@ -116,14 +116,14 @@
       {
         "ids": "Snort",
         "events": 3000,
-        "clusters": 8,
-        "anomalies": 7,
-        "anomaly_rate": 0.23
+        "clusters": 12,
+        "anomalies": 4,
+        "anomaly_rate": 0.13
       },
       {
         "ids": "Suricata",
         "events": 3000,
-        "clusters": 7,
+        "clusters": 9,
         "anomalies": 0,
         "anomaly_rate": 0.0
       }
