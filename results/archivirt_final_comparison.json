@@ -1,6 +1,6 @@
 {
   "title": "ARCHIVIRT - IDS Comparison Report",
-  "date": "2026-05-18",
+  "date": "2026-05-19",
   "table2": {
     "title": "Table 2: Detection Efficiency Metrics (average over 10 runs)",
     "rows": [
@@ -15,10 +15,10 @@
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 1592,
+          "alerts": 149,
           "detection": 100.0,
-          "fpr": 0.65,
-          "latency": 81.6
+          "fpr": 15.23,
+          "latency": 484.6
         }
       },
       {
@@ -32,10 +32,10 @@
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 32,
-          "detection": 100.0,
-          "fpr": 0.65,
-          "latency": 75.4
+          "alerts": 0,
+          "detection": 0.0,
+          "fpr": 15.23,
+          "latency": 0.0
         }
       },
       {
@@ -49,10 +49,10 @@
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 19,
+          "alerts": 162,
           "detection": 100.0,
-          "fpr": 0.65,
-          "latency": 292.0
+          "fpr": 15.23,
+          "latency": 685.5
         }
       },
       {
@@ -66,10 +66,10 @@
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 1580,
+          "alerts": 997,
           "detection": 100.0,
-          "fpr": 0.65,
-          "latency": 0.0
+          "fpr": 15.23,
+          "latency": 1125.7
         }
       },
       {
@@ -83,9 +83,9 @@
         },
         "suricata": {
           "ids": "Suricata 6.0.4",
-          "alerts": 21,
+          "alerts": 235,
           "detection": "N/A",
-          "fpr": 0.65,
+          "fpr": 15.23,
           "latency": "N/A"
         }
       }
@@ -103,7 +103,7 @@
       },
       {
         "ids": "Suricata 6.0.4",
-        "total_alerts": 3244,
+        "total_alerts": 1543,
         "cpu": 7.7,
         "ram": 46,
         "mbit": 1120
@@ -116,14 +116,14 @@
       {
         "ids": "Snort",
         "events": 3000,
-        "clusters": 14,
-        "anomalies": 12,
-        "anomaly_rate": 0.4
+        "clusters": 8,
+        "anomalies": 7,
+        "anomaly_rate": 0.23
       },
       {
         "ids": "Suricata",
         "events": 3000,
-        "clusters": 3,
+        "clusters": 7,
         "anomalies": 0,
         "anomaly_rate": 0.0
       }
